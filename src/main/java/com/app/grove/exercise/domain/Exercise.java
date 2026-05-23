@@ -32,6 +32,6 @@ public class Exercise {
     List<Concept> concepts;
 
     @ManyToOne @JoinColumn(name="user_id")
-    Usr user;
+    User user;
 
 }
