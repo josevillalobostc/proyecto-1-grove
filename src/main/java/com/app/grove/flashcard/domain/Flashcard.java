@@ -24,6 +24,8 @@ public class Flashcard {
     private Integer difficulty;
     private LocalDateTime createdAt;
 
-
+    //Relaciones
+    @OneToMany(mappedBy="flashcard",cascade=CascadeType.ALL)
+    List<Concept> concepts;
 
 }

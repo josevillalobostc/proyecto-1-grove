@@ -27,6 +27,11 @@ public class Exercise {
     private Integer difficulty;
     private LocalDateTime createdAt;
 
+    //Relaciones
+    @OneToMany(mappedBy="exercise",cascade=CascadeType.ALL)
+    List<Concept> concepts;
 
+    @ManyToOne @JoinColumn(name="user_id")
+    Usr user;
 
 }
