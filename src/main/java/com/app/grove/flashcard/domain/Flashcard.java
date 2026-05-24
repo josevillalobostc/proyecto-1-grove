@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +26,7 @@ public class Flashcard {
     private LocalDateTime createdAt;
 
     //Relaciones
-    @OneToMany(mappedBy="flashcard",cascade=CascadeType.ALL)
-    List<Concept> concepts;
+    @Relationship(type="HAS_FLASHCARD",direction=Relationship.Direction.OUTGOING)
+    private List<Concept> concepts;
 
 }

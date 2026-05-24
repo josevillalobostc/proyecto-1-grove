@@ -7,6 +7,7 @@ import lombok.Setter;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,10 +29,10 @@ public class Exercise {
     private LocalDateTime createdAt;
 
     //Relaciones
-    @OneToMany(mappedBy="exercise",cascade=CascadeType.ALL)
-    List<Concept> concepts;
+    @Relationship(type="HAS_CONCEPT",direction=Relationship.Direction.OUTGOING)
+    private List<Concept> concepts;
 
-    @ManyToOne @JoinColumn(name="user_id")
-    User user;
+    @Relationship(type="BELONGS_TO",direction=Relationship.Direction.OUTGOING)
+    private User user;
 
 }
