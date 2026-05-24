@@ -30,18 +30,15 @@ public class ConceptService {
     public ConceptResponse createConcept(ConceptRequest request) {
         Workspace workspace = workspaceRepository
             .findById(request.getWorkspaceId())
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId())
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId()));
 
         Concept concept = new Concept();
         concept.setTitle(request.getTitle());
         concept.setContent(request.getContent());
         concept.setCreatedAt(LocalDateTime.now());
         concept.setWorkspace(workspace);
-
         concept = conceptRepository.save(concept);
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     @Transactional
@@ -64,25 +61,22 @@ public class ConceptService {
         fork.setCreatedAt(LocalDateTime.now());
         fork.setWorkspace(targetWorkspace);
         fork.setForkedFrom(original);
-
         fork = conceptRepository.save(fork);
-        return modelMapper.map(fork, ConceptResponse.class);
+        return mapToResponse(fork);
     }
 
     public ConceptResponse getConceptById(String id) {
         Concept concept = conceptRepository
             .findById(id)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Concepto no encontrado: " + id)
-            );
-        return modelMapper.map(concept, ConceptResponse.class);
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+        return mapToResponse(concept);
     }
 
     public List<ConceptResponse> getAllConcepts() {
         return conceptRepository
             .findAll()
             .stream()
-            .map(concept -> modelMapper.map(concept, ConceptResponse.class))
+            .map(this::mapToResponse)
             .collect(Collectors.toList());
     }
 
@@ -93,121 +87,119 @@ public class ConceptService {
     ) {
         Concept concept = conceptRepository
             .findById(id)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Concepto no encontrado: " + id)
-            );
-        if (request.getTitle() != null) {
-            concept.setTitle(request.getTitle());
-        }
-        if (request.getContent() != null) {
-            concept.setContent(request.getContent());
-        }
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+        if (request.getTitle() != null) concept.setTitle(request.getTitle());
+        if (request.getContent() != null) concept.setContent(request.getContent());
         concept.setUpdatedAt(LocalDateTime.now());
         concept = conceptRepository.save(concept);
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     @Transactional
     public void deleteConcept(String id) {
         Concept concept = conceptRepository
             .findById(id)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Concepto no encontrado: " + id)
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
         conceptRepository.delete(concept);
     }
 
     @Transactional
-    public ConceptResponse addPrerequisite(
-        String conceptId,
-        String prerequisiteId
-    ) {
+    public ConceptResponse addPrerequisite(String conceptId,String prerequisiteId) {
         Concept concept = conceptRepository
             .findById(conceptId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException(
-                    "Concepto no encontrado: " + conceptId
-                )
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
         Concept prerequisite = conceptRepository
             .findById(prerequisiteId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException(
-                    "Prerrequisito no encontrado: " + prerequisiteId
-                )
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Prerrequisito no encontrado: " + prerequisiteId));
 
         if (!concept.getPrerequisites().contains(prerequisite)) {
             concept.getPrerequisites().add(prerequisite);
             concept = conceptRepository.save(concept);
         }
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     @Transactional
-    public ConceptResponse removePrerequisite(
-        String conceptId,
-        String prerequisiteId
-    ) {
+    public ConceptResponse removePrerequisite(String conceptId, String prerequisiteId) {
         Concept concept = conceptRepository
             .findById(conceptId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException(
-                    "Concepto no encontrado: " + conceptId
-                )
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
         concept
             .getPrerequisites()
-            .removeIf(prereq -> prereq.getId().equals(prerequisiteId));
+            .removeIf(p -> p.getId().equals(prerequisiteId));
         concept = conceptRepository.save(concept);
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     @Transactional
     public ConceptResponse addTagToConcept(String conceptId, String tagId) {
         Concept concept = conceptRepository
             .findById(conceptId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException(
-                    "Concepto no encontrado: " + conceptId
-                )
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
 
         Tag tag = tagRepository
             .findById(tagId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Tag no encontrado: " + tagId)
-            );
-
+            .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrado: " + tagId));
         if (!concept.getTags().contains(tag)) {
             concept.getTags().add(tag);
             concept = conceptRepository.save(concept);
         }
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     @Transactional
-    public ConceptResponse removeTagFromConcept(
-        String conceptId,
-        String tagId
-    ) {
+    public ConceptResponse removeTagFromConcept(String conceptId, String tagId) {
         Concept concept = conceptRepository
             .findById(conceptId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException(
-                    "Concepto no encontrado: " + conceptId
-                )
-            );
-        concept.getTags().removeIf(tag -> tag.getId().equals(tagId));
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+
+        concept.getTags().removeIf(t -> t.getId().equals(tagId));
         concept = conceptRepository.save(concept);
-        return modelMapper.map(concept, ConceptResponse.class);
+        return mapToResponse(concept);
     }
 
     public List<ConceptResponse> searchByTitle(String keyword) {
         return conceptRepository
             .searchByTitleContaining(keyword)
             .stream()
-            .map(concept -> modelMapper.map(concept, ConceptResponse.class))
+            .map(this::mapToResponse)
             .collect(Collectors.toList());
+    }
+
+    private ConceptResponse mapToResponse(Concept concept) {
+        ConceptResponse response = modelMapper.map(concept, ConceptResponse.class);
+        response.setWorkspaceId(
+            concept.getWorkspace() != null
+                ? concept.getWorkspace().getId()
+                : null
+        );
+        response.setForkedFromId(
+            concept.getForkedFrom() != null
+                ? concept.getForkedFrom().getId()
+                : null
+        );
+        if (concept.getPrerequisites() != null) {
+            response.setPrerequisiteIds(
+                concept
+                    .getPrerequisites()
+                    .stream()
+                    .map(Concept::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setPrerequisiteIds(List.of());
+        }
+        if (concept.getTags() != null) {
+            response.setTagIds(
+                concept
+                    .getTags()
+                    .stream()
+                    .map(Tag::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setTagIds(List.of());
+        }
+        return response;
     }
 }
