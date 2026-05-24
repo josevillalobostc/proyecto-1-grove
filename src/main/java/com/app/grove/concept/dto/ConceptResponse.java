@@ -12,6 +12,8 @@ public class ConceptResponse {
     private String content;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String workspaceId;
+    private String forkedFromId;
     private List<String> prerequisiteIds;
     private List<String> tagIds;
 }
