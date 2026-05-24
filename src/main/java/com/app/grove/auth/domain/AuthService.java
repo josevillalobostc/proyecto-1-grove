@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.app.grove.auth.dto.SignInRequest;
 import com.app.grove.auth.dto.SignUpRequest;
 import com.app.grove.auth.dto.TokenResponse;
+import com.app.grove.exceptions.UserAlreadyExistsException;
 import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.dto.UserResponse;

@@ -6,6 +6,7 @@ import com.app.grove.notification.domain.Notification;
 import com.app.grove.notification.infrastructure.NotificationRepository;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,4 +68,3 @@ public class NotificationEventListener {
 
 
 
-}

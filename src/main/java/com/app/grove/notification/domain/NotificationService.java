@@ -1,5 +1,6 @@
 package com.app.grove.notification.domain;
 
+import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.notification.dto.NotificationRequestDTO;
 import com.app.grove.notification.dto.NotificationResponseDTO;
 import com.app.grove.notification.infrastructure.NotificationRepository;

@@ -1,7 +1,7 @@
 package com.app.grove.comment.domain;
 
+import com.app.grove.concept.domain.Concept;
 import com.app.grove.user.domain.User;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

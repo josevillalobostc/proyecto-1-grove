@@ -3,13 +3,15 @@ package com.app.grove.comment.domain;
 import com.app.grove.comment.dto.CommentRequestDTO;
 import com.app.grove.comment.dto.CommentResponseDTO;
 import com.app.grove.comment.infrastructure.CommentRepository;
-import com.app.grove.events.NewCommentNotificationEvent;
+import com.app.grove.concept.domain.Concept;
+import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,7 +25,6 @@ public class CommentService {
     private final UserRepository userRepository;
     private final ConceptRepository conceptRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public CommentResponseDTO createComment(CommentRequestDTO request) {
@@ -46,18 +47,6 @@ public class CommentService {
         }
 
         Comment saved = commentRepository.save(comment);
-
-        Concept concept = conceptRepository.findById(request.getConceptId()).orElseThrow();
-        String conceptAuthorId = concept.getCreatedBy() != null ? concept.getCreatedBy().getId() : null;
-        if (conceptAuthorId != null && !conceptAuthorId.equals(request.getAuthorId())) {
-            eventPublisher.publishEvent(new NewCommentNotificationEvent(
-                    concept.getId(),
-                    concept.getTitle(),
-                    request.getText(),
-                    author.getUsername(),
-                    conceptAuthorId
-            ));
-        }
         return convertToResponse(saved);
     }
 
@@ -95,7 +84,7 @@ public class CommentService {
         CommentResponseDTO response = modelMapper.map(comment, CommentResponseDTO.class);
         if (comment.getAuthor() != null) {
             response.setAuthorId(comment.getAuthor().getId());
-            response.setAuthorName(comment.getAuthor().getUsername());
+            response.setAuthorName(comment.getAuthor().getDisplayName());
         }
 
         if (comment.getConcept() != null) {
