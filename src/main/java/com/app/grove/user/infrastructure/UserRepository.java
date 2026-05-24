@@ -8,4 +8,6 @@ import com.app.grove.user.domain.User;
 
 public interface UserRepository extends Neo4jRepository<User, String>{
     Optional<User> findByUsername(String username);
+    Boolean existsByUsername(String username);
+    Boolean existsByEmail(String username);
 }
