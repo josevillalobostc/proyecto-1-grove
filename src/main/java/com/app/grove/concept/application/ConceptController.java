@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/concepts")
+@RequestMapping("/api/v1/concepts")
 @RequiredArgsConstructor
 public class ConceptController {
 
