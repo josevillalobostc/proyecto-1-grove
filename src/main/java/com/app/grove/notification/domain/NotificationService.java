@@ -3,6 +3,8 @@ package com.app.grove.notification.domain;
 import com.app.grove.notification.dto.NotificationRequestDTO;
 import com.app.grove.notification.dto.NotificationResponseDTO;
 import com.app.grove.notification.infrastructure.NotificationRepository;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
