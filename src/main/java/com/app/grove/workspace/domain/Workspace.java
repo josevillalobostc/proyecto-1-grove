@@ -1,6 +1,8 @@
 package com.app.grove.workspace.domain;
 
 import com.app.grove.concept.domain.Concept;
+import com.app.grove.user.domain.User;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
