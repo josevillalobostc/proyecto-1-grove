@@ -13,4 +13,7 @@ public class ConceptRequest {
 
     @NotBlank(message = "El contenido es obligatorio")
     private String content;
+
+    @NotBlank(message = "El workspace es obligatorio")
+    private String workspaceId;
 }
