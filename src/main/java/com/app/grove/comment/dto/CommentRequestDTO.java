@@ -14,4 +14,6 @@ public class CommentRequestDTO {
 
     @NotNull(message = "El ID del concepto es obligatorio")
     private String conceptId;
+
+    private String parentCommentId;
 }
