@@ -31,7 +31,7 @@ public class NotificationService {
         return convertToResponse(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<NotificationResponseDTO> getNotificationsByUser(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
