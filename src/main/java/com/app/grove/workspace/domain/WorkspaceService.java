@@ -1,5 +1,6 @@
 package com.app.grove.workspace.domain;
 
+import com.app.grove.concept.domain.Concept;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
@@ -10,7 +11,6 @@ import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -31,32 +31,34 @@ public class WorkspaceService {
         workspace.setPublic(request.isPublic());
         workspace.setCreatedAt(LocalDateTime.now());
         workspace = workspaceRepository.save(workspace);
-        return modelMapper.map(workspace, WorkspaceResponse.class);
+        return mapToResponse(workspace);
     }
 
     public WorkspaceResponse getWorkspaceById(String id) {
         Workspace workspace = workspaceRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
-        return modelMapper.map(workspace, WorkspaceResponse.class);
+        return mapToResponse(workspace);
     }
 
     public List<WorkspaceResponse> getAllWorkspaces() {
-        return workspaceRepository.findAll()
-                .stream()
-                .map(workspace -> modelMapper.map(workspace, WorkspaceResponse.class))
-                .collect(Collectors.toList());
+        return workspaceRepository
+            .findAll()
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
     }
 
     @Transactional
     public WorkspaceResponse updateWorkspace(String id, WorkspaceRequest request) {
-        Workspace workspace = workspaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+        Workspace workspace = workspaceRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
         workspace.setName(request.getName());
         workspace.setDescription(request.getDescription());
         workspace.setPublic(request.isPublic());
         workspace = workspaceRepository.save(workspace);
-        return modelMapper.map(workspace, WorkspaceResponse.class);
+        return mapToResponse(workspace);
     }
 
     @Transactional
@@ -82,7 +84,7 @@ public class WorkspaceService {
             workspace = workspaceRepository.save(workspace);
         }
 
-        return modelMapper.map(workspace, WorkspaceResponse.class);
+        return mapToResponse(workspace);
     }
 
     @Transactional
@@ -96,10 +98,47 @@ public class WorkspaceService {
             .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
 
         if (workspace.getMembers().contains(user)) {
-                workspace.getMembers().remove(user);
+            workspace.getMembers().remove(user);
         }
 
         workspace = workspaceRepository.save(workspace);
-        return modelMapper.map(workspace, WorkspaceResponse.class);
+
+        return mapToResponse(workspace);
+    }
+
+    public List<WorkspaceResponse> getPublicWorkspaces() {
+        return workspaceRepository
+            .findByIsPublicTrue()
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    private WorkspaceResponse mapToResponse(Workspace workspace) {
+        WorkspaceResponse response = modelMapper.map(workspace, WorkspaceResponse.class);
+
+        if (workspace.getConcepts() != null) {
+            response.setConceptIds(
+                workspace
+                    .getConcepts()
+                    .stream()
+                    .map(Concept::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setConceptIds(List.of());
+        }
+        if (workspace.getMembers() != null) {
+            response.setMemberIds(
+                workspace
+                    .getMembers()
+                    .stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setMemberIds(List.of());
+        }
+        return response;
     }
 }
