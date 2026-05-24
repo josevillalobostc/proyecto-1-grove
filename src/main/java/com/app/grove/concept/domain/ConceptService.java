@@ -7,6 +7,8 @@ import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.workspace.domain.Workspace;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,16 +23,50 @@ public class ConceptService {
 
     private final ConceptRepository conceptRepository;
     private final TagRepository tagRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final ModelMapper modelMapper;
 
     @Transactional
     public ConceptResponse createConcept(ConceptRequest request) {
+        Workspace workspace = workspaceRepository
+            .findById(request.getWorkspaceId())
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId())
+            );
+
         Concept concept = new Concept();
         concept.setTitle(request.getTitle());
         concept.setContent(request.getContent());
         concept.setCreatedAt(LocalDateTime.now());
+        concept.setWorkspace(workspace);
+
         concept = conceptRepository.save(concept);
         return modelMapper.map(concept, ConceptResponse.class);
+    }
+
+    @Transactional
+    public ConceptResponse forkConcept(String originalConceptId, String targetWorkspaceId) {
+        Concept original = conceptRepository
+            .findById(originalConceptId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Concepto original no encontrado")
+            );
+
+        Workspace targetWorkspace = workspaceRepository
+            .findById(targetWorkspaceId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Workspace destino no encontrado")
+            );
+
+        Concept fork = new Concept();
+        fork.setTitle(original.getTitle());
+        fork.setContent(original.getContent());
+        fork.setCreatedAt(LocalDateTime.now());
+        fork.setWorkspace(targetWorkspace);
+        fork.setForkedFrom(original);
+
+        fork = conceptRepository.save(fork);
+        return modelMapper.map(fork, ConceptResponse.class);
     }
 
     public ConceptResponse getConceptById(String id) {
