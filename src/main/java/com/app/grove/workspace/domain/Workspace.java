@@ -28,17 +28,12 @@ public class Workspace {
 
     private String name;
     private String description;
+    private boolean isPublic;
     private LocalDateTime createdAt;
 
-    @Relationship(
-        type = "CONTAINS",
-        direction = Relationship.Direction.OUTGOING
-    )
+    @Relationship(type = "BELONGS_TO",direction = Relationship.Direction.INCOMING)
     private List<Concept> concepts;
 
-    @Relationship(
-        type = "MEMBER_OF",
-        direction = Relationship.Direction.INCOMING
-    )
+    @Relationship(type = "MEMBER_OF",direction = Relationship.Direction.INCOMING)
     private List<User> members;
 }
