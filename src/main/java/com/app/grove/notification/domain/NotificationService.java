@@ -23,7 +23,7 @@ public class NotificationService {
 
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        Notification notification = modelMapper.map(request, Notification);
+        Notification notification = modelMapper.map(request, Notification.class);
         notification.setCreatedAt(LocalDateTime.now());
         notification.setUser(user);
 
