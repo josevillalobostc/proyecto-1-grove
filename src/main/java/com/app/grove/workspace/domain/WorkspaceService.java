@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -41,12 +43,8 @@ public class WorkspaceService {
         return mapToResponse(workspace);
     }
 
-    public List<WorkspaceResponse> getAllWorkspaces() {
-        return workspaceRepository
-            .findAll()
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<WorkspaceResponse> getAllWorkspaces(Pageable pageable) {
+        return workspaceRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     @Transactional
@@ -106,12 +104,8 @@ public class WorkspaceService {
         return mapToResponse(workspace);
     }
 
-    public List<WorkspaceResponse> getPublicWorkspaces() {
-        return workspaceRepository
-            .findByIsPublicTrue()
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<WorkspaceResponse> getPublicWorkspaces(Pageable pageable) {
+        return workspaceRepository.findByIsPublicTrue(pageable).map(this::mapToResponse);
     }
 
     private WorkspaceResponse mapToResponse(Workspace workspace) {
