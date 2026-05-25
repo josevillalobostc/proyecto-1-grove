@@ -5,10 +5,10 @@ import com.app.grove.tag.dto.TagRequest;
 import com.app.grove.tag.dto.TagResponse;
 import com.app.grove.tag.infrastructure.TagRepository;
 import jakarta.transaction.Transactional;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,12 +37,8 @@ public class TagService {
         return modelMapper.map(tag, TagResponse.class);
     }
 
-    public List<TagResponse> getAllTags() {
-        return tagRepository
-            .findAll()
-            .stream()
-            .map(tag -> modelMapper.map(tag, TagResponse.class))
-            .collect(Collectors.toList());
+    public Page<TagResponse> getAllTags(Pageable pageable) {
+        return tagRepository.findAll(pageable).map(tag -> modelMapper.map(tag, TagResponse.class));
     }
 
     @Transactional
@@ -69,11 +65,7 @@ public class TagService {
         tagRepository.delete(tag);
     }
 
-    public List<TagResponse> searchByName(String keyword) {
-        return tagRepository
-            .searchByName(keyword)
-            .stream()
-            .map(tag -> modelMapper.map(tag, TagResponse.class))
-            .collect(Collectors.toList());
+    public Page<TagResponse> searchByName(String keyword, Pageable pageable) {
+        return tagRepository.searchByName(keyword, pageable).map(tag -> modelMapper.map(tag, TagResponse.class));
     }
 }
