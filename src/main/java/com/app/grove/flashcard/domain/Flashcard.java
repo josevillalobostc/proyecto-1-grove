@@ -8,6 +8,7 @@ import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
 
 import com.app.grove.concept.domain.Concept;
 
@@ -20,7 +21,7 @@ import java.util.List;
 @Setter
 @Getter
 public class Flashcard {
-    @Id @GeneratedValue
+    @Id @GeneratedValue(generatorClass = UUIDStringGenerator.class)
     private String id;
     private String front;
     private String back;
