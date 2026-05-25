@@ -45,6 +45,9 @@ public class WorkspaceService {
         workspace.setPublic(request.isPublic());
         workspace.setCreatedAt(LocalDateTime.now());
         workspace.setCreatedBy(creator);
+        if (workspace.getMembers() == null) {
+            workspace.setMembers(new java.util.ArrayList<>());
+        }
         workspace.getMembers().add(creator);
 
         workspace = workspaceRepository.save(workspace);

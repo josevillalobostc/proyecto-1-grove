@@ -8,12 +8,16 @@ import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
@@ -31,12 +35,19 @@ class CommentServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
+    @Mock
     private ConceptRepository conceptRepository;
 
     private CommentService commentService;
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         commentService = new CommentService(
             commentRepository,
             userRepository,
@@ -45,11 +56,20 @@ class CommentServiceTest {
         );
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void shouldCreateCommentWhenAuthorAndConceptExist() {
         User author = new User();
         author.setId("u1");
         author.setUsername("commenter");
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(author);
 
         Concept concept = new Concept();
         concept.setId("c1");
@@ -77,6 +97,10 @@ class CommentServiceTest {
     void shouldThrowWhenParentCommentDoesNotExist() {
         User author = new User();
         author.setId("u1");
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(author);
 
         Concept concept = new Concept();
         concept.setId("c1");

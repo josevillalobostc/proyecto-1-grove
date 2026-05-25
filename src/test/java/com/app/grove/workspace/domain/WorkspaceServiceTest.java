@@ -7,6 +7,8 @@ import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.dto.WorkspaceRequest;
 import com.app.grove.workspace.dto.WorkspaceResponse;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+import com.app.grove.workspace.domain.Workspace;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +49,13 @@ class WorkspaceServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         workspaceService = new WorkspaceService(workspaceRepository, userRepository, new ModelMapper(), eventPublisher);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -57,12 +65,23 @@ class WorkspaceServiceTest {
         request.setDescription("Workspace for study");
         request.setPublic(true);
 
+        User creator = new User();
+        creator.setId("u1");
+        creator.setUsername("creator");
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(creator);
+
         Workspace saved = new Workspace();
         saved.setId("w1");
         saved.setName("Study Group");
         saved.setDescription("Workspace for study");
         saved.setPublic(true);
         saved.setCreatedAt(LocalDateTime.now());
+        saved.setCreatedBy(creator);
+        saved.setMembers(new java.util.ArrayList<>());
+        saved.getMembers().add(creator);
 
         when(workspaceRepository.save(org.mockito.ArgumentMatchers.any(Workspace.class))).thenReturn(saved);
 
@@ -89,6 +108,7 @@ class WorkspaceServiceTest {
         Workspace workspace = new Workspace();
         workspace.setId("w1");
         workspace.setMembers(new java.util.ArrayList<>());
+        workspace.getMembers().add(inviter);
 
         when(workspaceRepository.findById("w1")).thenReturn(Optional.of(workspace));
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
@@ -96,7 +116,7 @@ class WorkspaceServiceTest {
 
         WorkspaceResponse response = workspaceService.addMemberToWorkspace("w1", "u1");
 
-        assertThat(response.getMemberIds()).containsExactly("u1");
+        assertThat(response.getMemberIds()).containsExactlyInAnyOrder("inviter", "u1");
     }
 
     @Test

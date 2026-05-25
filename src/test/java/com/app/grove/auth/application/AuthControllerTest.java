@@ -54,7 +54,7 @@ class AuthControllerTest {
 
         when(authService.signUp(any(SignUpRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -71,7 +71,7 @@ class AuthControllerTest {
         TokenResponse response = new TokenResponse("jwt-token");
         when(authService.signIn(any(SignInRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isOk())
