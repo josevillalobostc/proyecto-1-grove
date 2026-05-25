@@ -4,6 +4,7 @@ import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
 import com.app.grove.exercise.infrastructure.ExerciseRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,10 +12,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import com.app.grove.user.domain.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,11 +37,23 @@ class ExerciseServiceTest {
     @Mock
     private ExerciseRepository exerciseRepository;
 
+    @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
     private ExerciseService exerciseService;
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         exerciseService = new ExerciseService(exerciseRepository, new ModelMapper());
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -172,6 +189,17 @@ class ExerciseServiceTest {
 
     @Test
     void shouldDeleteExistingExercise() {
+        Exercise exercise = new Exercise();
+        exercise.setId("e1");
+        User currentUser = new User();
+        currentUser.setId("u1");
+        exercise.setUser(currentUser);
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(currentUser);
+
+        when(exerciseRepository.findById("e1")).thenReturn(Optional.of(exercise));
         when(exerciseRepository.existsById("e1")).thenReturn(true);
 
         exerciseService.deleteById("e1");
@@ -181,10 +209,17 @@ class ExerciseServiceTest {
 
     @Test
     void shouldThrowOnDeleteWhenNotFound() {
-        when(exerciseRepository.existsById("missing")).thenReturn(false);
+        User currentUser = new User();
+        currentUser.setId("u1");
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(currentUser);
+
+        when(exerciseRepository.findById("missing")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> exerciseService.deleteById("missing"))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("No se puede eliminar");
+                .hasMessageContaining("Ejercicio no encontrado");
     }
 }

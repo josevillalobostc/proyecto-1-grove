@@ -8,6 +8,7 @@ import com.app.grove.tag.infrastructure.TagRepository;
 import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,6 +53,7 @@ class ConceptServiceTest {
 
     @BeforeEach
     void setUp() {
+        SecurityContextHolder.clearContext();
         conceptService = new ConceptService(
             conceptRepository,
             tagRepository,
@@ -61,11 +63,17 @@ class ConceptServiceTest {
         );
     }
 
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void shouldCreateConceptWhenWorkspaceExists() {
         Workspace workspace = new Workspace();
         workspace.setId("w1");
         workspace.setName("Workspace One");
+        workspace.setPublic(true);
 
         ConceptRequest request = new ConceptRequest();
         request.setTitle("Graph Theory");
@@ -101,6 +109,12 @@ class ConceptServiceTest {
         request.setTitle("Graph Theory");
         request.setContent("Study of graphs");
         request.setWorkspaceId("missing");
+
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        User creator = new User();
+        creator.setId("u1");
+        when(authentication.getPrincipal()).thenReturn(creator);
 
         when(workspaceRepository.findById("missing")).thenReturn(Optional.empty());
 

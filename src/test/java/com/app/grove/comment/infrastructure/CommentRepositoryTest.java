@@ -7,7 +7,6 @@ import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
 import java.time.LocalDateTime;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

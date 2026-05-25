@@ -7,7 +7,6 @@ import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
-import com.app.grove.exercise.infrastructure.ExerciseRepository;
 
 import lombok.RequiredArgsConstructor;
 
