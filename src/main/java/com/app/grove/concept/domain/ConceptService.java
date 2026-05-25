@@ -4,6 +4,7 @@ import com.app.grove.concept.dto.ConceptRequest;
 import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.dto.ConceptUpdateRequest;
 import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.events.ConceptCreatedNotificationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
@@ -16,10 +17,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,6 +33,7 @@ public class ConceptService {
     private final TagRepository tagRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ConceptResponse createConcept(ConceptRequest request) {
@@ -47,6 +51,18 @@ public class ConceptService {
         concept.setCreatedAt(LocalDateTime.now());
         concept.setWorkspace(workspace);
         concept = conceptRepository.save(concept);
+
+        if (workspace.getConcepts() != null) {
+            workspace.getConcepts().add(concept);
+            workspaceRepository.save(workspace);
+        }
+
+        eventPublisher.publishEvent(new ConceptCreatedNotificationEvent(
+                concept.getId(),
+                concept.getTitle(),
+                workspace.getId(),
+                creator.getId() // Pasamos el ID del creador que obtuvimos de la sesión
+        ));
         return mapToResponse(concept);
     }
 
