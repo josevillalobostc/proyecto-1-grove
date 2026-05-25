@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +56,8 @@ class NotificationRepositoryTest extends AbstractNeo4jTest {
 
         notificationRepository.saveAll(List.of(first, second));
 
-        List<Notification> notifications = notificationRepository.findByUser(user);
+        var pageable = PageRequest.of(0, 10);
+        var notifications = notificationRepository.findByUser(user, pageable).getContent();
 
         assertThat(notifications).hasSize(2);
         assertThat(notifications).extracting(Notification::getMessage)

@@ -5,6 +5,7 @@ import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
+import com.app.grove.exercise.infrastructure.ExerciseRepository;
 
 import lombok.RequiredArgsConstructor;
 

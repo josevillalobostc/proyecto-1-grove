@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,19 +57,20 @@ class WorkspaceRepositoryTest extends AbstractNeo4jTest {
         privateWorkspace.setMembers(List.of(user));
 
         workspaceRepository.saveAll(List.of(publicWorkspace, privateWorkspace));
+        var pageable = PageRequest.of(0, 10);
 
         Workspace loaded = workspaceRepository.findByName("Public Workspace");
         assertThat(loaded).isNotNull();
         assertThat(loaded.getName()).isEqualTo("Public Workspace");
 
-        List<Workspace> publicWorkspaces = workspaceRepository.findByIsPublicTrue();
+        List<Workspace> publicWorkspaces = workspaceRepository.findByIsPublicTrue(pageable).getContent();
         assertThat(publicWorkspaces).hasSize(1);
         assertThat(publicWorkspaces.get(0).getName()).isEqualTo("Public Workspace");
 
-        List<Workspace> memberWorkspaces = workspaceRepository.findByMemberId(user.getId());
+        List<Workspace> memberWorkspaces = workspaceRepository.findByMemberId(user.getId(), pageable).getContent();
         assertThat(memberWorkspaces).hasSize(2);
 
-        List<User> members = workspaceRepository.findMembersByWorkspaceId(publicWorkspace.getId());
+        List<User> members = workspaceRepository.findMembersById(publicWorkspace.getId());
         assertThat(members).hasSize(1);
         assertThat(members.get(0).getUsername()).isEqualTo("workspaceuser");
     }

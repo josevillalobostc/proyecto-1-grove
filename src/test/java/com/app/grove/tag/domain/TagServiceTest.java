@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -70,11 +72,13 @@ class TagServiceTest {
         java.setDescription("Java language");
         java.setColor("#f89820");
 
-        when(tagRepository.searchByName("java")).thenReturn(List.of(java));
+        var pageable = PageRequest.of(0, 10);
+        when(tagRepository.searchByName("java", pageable))
+                .thenReturn(new PageImpl<>(List.of(java), pageable, 1));
 
-        List<TagResponse> results = tagService.searchByName("java");
+        var results = tagService.searchByName("java", pageable);
 
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getName()).isEqualTo("Java");
+        assertThat(results.getContent()).hasSize(1);
+        assertThat(results.getContent().get(0).getName()).isEqualTo("Java");
     }
 }

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,8 +65,9 @@ class CommentRepositoryTest extends AbstractNeo4jTest {
         commentRepository.save(rootComment);
         commentRepository.save(replyComment);
 
-        List<Comment> allComments = commentRepository.findByConcept(concept);
-        List<Comment> rootComments = commentRepository.findByConceptAndParentCommentIsNull(concept);
+        var pageable = PageRequest.of(0, 10);
+        var allComments = commentRepository.findByConcept(concept, pageable).getContent();
+        var rootComments = commentRepository.findByConceptAndParentCommentIsNull(concept, pageable).getContent();
 
         assertThat(allComments).hasSize(2);
         assertThat(rootComments).hasSize(1);

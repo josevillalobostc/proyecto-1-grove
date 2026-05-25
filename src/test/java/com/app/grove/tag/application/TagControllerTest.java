@@ -10,6 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -37,6 +41,7 @@ class TagControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
             .standaloneSetup(new TagController(tagService))
+            .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
         objectMapper = new ObjectMapper();
@@ -69,10 +74,12 @@ class TagControllerTest {
         response.setId("t1");
         response.setName("Spring");
 
-        when(tagService.searchByName("spring")).thenReturn(List.of(response));
+        var pageable = PageRequest.of(0, 20);
+        when(tagService.searchByName(any(String.class), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response), pageable, 1));
 
         mockMvc.perform(get("/api/v1/tags/search").param("keyword", "spring"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value("t1"));
+            .andExpect(jsonPath("$.content[0].id").value("t1"));
     }
 }

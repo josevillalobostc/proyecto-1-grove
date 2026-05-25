@@ -13,6 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,11 +35,20 @@ class WorkspaceServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
     private WorkspaceService workspaceService;
 
     @BeforeEach
     void setUp() {
-        workspaceService = new WorkspaceService(workspaceRepository, userRepository, new ModelMapper());
+        workspaceService = new WorkspaceService(workspaceRepository, userRepository, new ModelMapper(), eventPublisher);
     }
 
     @Test
@@ -63,13 +76,20 @@ class WorkspaceServiceTest {
 
     @Test
     void shouldAddMemberToWorkspaceWhenUserExists() {
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        User inviter = new User();
+        inviter.setId("inviter");
+        inviter.setUsername("inviter-user");
+        when(authentication.getPrincipal()).thenReturn(inviter);
+
         User user = new User();
         user.setId("u1");
         user.setRole(Role.ROLE_USER);
 
         Workspace workspace = new Workspace();
         workspace.setId("w1");
-        workspace.setMembers(List.of());
+        workspace.setMembers(new java.util.ArrayList<>());
 
         when(workspaceRepository.findById("w1")).thenReturn(Optional.of(workspace));
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));

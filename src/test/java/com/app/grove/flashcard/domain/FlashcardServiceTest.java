@@ -1,6 +1,5 @@
 package com.app.grove.flashcard.domain;
 
-import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.flashcard.dto.FlashcardRequest;
 import com.app.grove.flashcard.dto.FlashcardResponse;
@@ -11,9 +10,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,14 +30,11 @@ class FlashcardServiceTest {
     @Mock
     private FlashcardRepository flashcardRepository;
 
-    @Mock
-    private ConceptRepository conceptRepository;
-
     private FlashcardService flashcardService;
 
     @BeforeEach
     void setUp() {
-        flashcardService = new FlashcardService(flashcardRepository, conceptRepository);
+        flashcardService = new FlashcardService(flashcardRepository, new ModelMapper());
     }
 
     @Test
@@ -68,16 +68,44 @@ class FlashcardServiceTest {
     }
 
     @Test
-    void shouldThrowWhenConceptNotFound() {
-        FlashcardRequest request = new FlashcardRequest();
-        request.setFront("Front");
-        request.setBack("Back");
-        request.setConceptIds(List.of("missing"));
+    void shouldFindFlashcardById() {
+        Flashcard flashcard = new Flashcard();
+        flashcard.setId("f1");
+        flashcard.setFront("Front");
+        flashcard.setBack("Back");
+        flashcard.setCreatedAt(LocalDateTime.now());
 
-        when(conceptRepository.findAllById(request.getConceptIds())).thenReturn(List.of());
+        when(flashcardRepository.findById("f1")).thenReturn(Optional.of(flashcard));
 
-        assertThatThrownBy(() -> flashcardService.create(request))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Al menos un concepto no fue encontrado");
+        FlashcardResponse response = flashcardService.findById("f1");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getId()).isEqualTo("f1");
+    }
+
+    @Test
+    void shouldReturnFlashcardsByDifficulty() {
+        Flashcard flashcard = new Flashcard();
+        flashcard.setId("f1");
+        flashcard.setDifficulty(2);
+        flashcard.setCreatedAt(LocalDateTime.now());
+
+        var pageable = PageRequest.of(0, 10);
+        when(flashcardRepository.findByDifficulty(2, pageable))
+                .thenReturn(new PageImpl<>(List.of(flashcard), pageable, 1));
+
+        var page = flashcardService.findByDifficulty(2, pageable);
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getDifficulty()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldDeleteExistingFlashcard() {
+        when(flashcardRepository.existsById("f1")).thenReturn(true);
+
+        flashcardService.deleteById("f1");
+
+        verify(flashcardRepository).deleteById("f1");
     }
 }

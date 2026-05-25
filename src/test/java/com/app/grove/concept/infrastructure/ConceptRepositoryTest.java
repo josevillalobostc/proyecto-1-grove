@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +58,8 @@ class ConceptRepositoryTest extends AbstractNeo4jTest {
 
         conceptRepository.saveAll(List.of(first, second));
 
-        List<Concept> results = conceptRepository.searchByTitleContaining("spring");
+        var pageable = PageRequest.of(0, 10);
+        var results = conceptRepository.searchByTitleContaining("spring", pageable).getContent();
 
         assertThat(results).hasSize(2);
         assertThat(results).extracting(Concept::getTitle)

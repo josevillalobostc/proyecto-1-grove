@@ -1,17 +1,20 @@
 package com.app.grove.exercise.domain;
 
-import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
 import com.app.grove.exercise.infrastructure.ExerciseRepository;
-import com.app.grove.user.infrastructure.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,17 +32,11 @@ class ExerciseServiceTest {
     @Mock
     private ExerciseRepository exerciseRepository;
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private ConceptRepository conceptRepository;
-
     private ExerciseService exerciseService;
 
     @BeforeEach
     void setUp() {
-        exerciseService = new ExerciseService(exerciseRepository, userRepository, conceptRepository);
+        exerciseService = new ExerciseService(exerciseRepository, new ModelMapper());
     }
 
     @Test
@@ -48,7 +45,7 @@ class ExerciseServiceTest {
         request.setQuestion("What is Java?");
         request.setAnswer("A programming language");
         request.setExplanation("Java is a compiled language");
-        request.setType("multiple-choice");
+        request.setType("multiple_choice");
         request.setOptions(List.of("Java", "Python", "Ruby"));
         request.setDifficulty(2);
 
@@ -83,11 +80,13 @@ class ExerciseServiceTest {
         Exercise exercise2 = new Exercise();
         exercise2.setId("e2");
 
-        when(exerciseRepository.findAll()).thenReturn(List.of(exercise1, exercise2));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(exerciseRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(exercise1, exercise2), pageable, 2));
 
-        List<ExerciseResponse> result = exerciseService.getAll();
+        Page<ExerciseResponse> result = exerciseService.getAll(pageable);
 
-        assertThat(result).hasSize(2).extracting(ExerciseResponse::getId).containsExactly("e1", "e2");
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getContent()).extracting(ExerciseResponse::getId).containsExactly("e1", "e2");
     }
 
     @Test
@@ -109,6 +108,66 @@ class ExerciseServiceTest {
         assertThatThrownBy(() -> exerciseService.findById("missing"))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Ejercicio no encontrado");
+    }
+
+    @Test
+    void shouldFindExercisesByType() {
+        Exercise exercise = new Exercise();
+        exercise.setId("e1");
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(exerciseRepository.findByType("multiple_choice", pageable))
+                .thenReturn(new PageImpl<>(List.of(exercise), pageable, 1));
+
+        Page<ExerciseResponse> result = exerciseService.findByType("multiple_choice", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo("e1");
+    }
+
+    @Test
+    void shouldFindExercisesByDifficulty() {
+        Exercise exercise = new Exercise();
+        exercise.setId("e1");
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(exerciseRepository.findByDifficulty(3, pageable))
+                .thenReturn(new PageImpl<>(List.of(exercise), pageable, 1));
+
+        Page<ExerciseResponse> result = exerciseService.findByDifficulty(3, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo("e1");
+    }
+
+    @Test
+    void shouldFindExercisesByQuestionContaining() {
+        Exercise exercise = new Exercise();
+        exercise.setId("e1");
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(exerciseRepository.findByQuestionContaining("Java", pageable))
+                .thenReturn(new PageImpl<>(List.of(exercise), pageable, 1));
+
+        Page<ExerciseResponse> result = exerciseService.findByQuestionContaining("Java", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo("e1");
+    }
+
+    @Test
+    void shouldFindExercisesByUserId() {
+        Exercise exercise = new Exercise();
+        exercise.setId("e1");
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(exerciseRepository.findExerciseByUserId("u1", pageable))
+                .thenReturn(new PageImpl<>(List.of(exercise), pageable, 1));
+
+        Page<ExerciseResponse> result = exerciseService.findExerciseByUserId("u1", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo("e1");
     }
 
     @Test

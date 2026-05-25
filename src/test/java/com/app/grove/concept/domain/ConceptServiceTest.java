@@ -5,6 +5,7 @@ import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -34,6 +39,15 @@ class ConceptServiceTest {
     @Mock
     private WorkspaceRepository workspaceRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private Authentication authentication;
+
+    @Mock
+    private SecurityContext securityContext;
+
     private ConceptService conceptService;
 
     @BeforeEach
@@ -42,7 +56,8 @@ class ConceptServiceTest {
             conceptRepository,
             tagRepository,
             workspaceRepository,
-            new ModelMapper()
+            new ModelMapper(),
+            eventPublisher
         );
     }
 
@@ -64,6 +79,11 @@ class ConceptServiceTest {
         savedConcept.setWorkspace(workspace);
         savedConcept.setCreatedAt(LocalDateTime.now());
 
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        User creator = new User();
+        creator.setId("u1");
+        when(authentication.getPrincipal()).thenReturn(creator);
         when(workspaceRepository.findById("w1")).thenReturn(Optional.of(workspace));
         when(conceptRepository.save(org.mockito.ArgumentMatchers.any(Concept.class))).thenReturn(savedConcept);
 

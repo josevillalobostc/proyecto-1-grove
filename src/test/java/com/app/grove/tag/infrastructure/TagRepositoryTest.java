@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +53,8 @@ class TagRepositoryTest extends AbstractNeo4jTest {
 
         tagRepository.saveAll(List.of(springTag, javaTag));
 
-        List<Tag> results = tagRepository.searchByName("spring");
+        var pageable = PageRequest.of(0, 10);
+        var results = tagRepository.searchByName("spring", pageable).getContent();
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).getName()).isEqualTo("Spring Boot");

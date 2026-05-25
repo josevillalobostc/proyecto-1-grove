@@ -10,6 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -37,6 +41,7 @@ class WorkspaceControllerTest {
     void setUp() {
         mockMvc = MockMvcBuilders
             .standaloneSetup(new WorkspaceController(workspaceService))
+            .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
             .setControllerAdvice(new GlobalExceptionHandler())
             .build();
         objectMapper = new ObjectMapper();
@@ -72,10 +77,12 @@ class WorkspaceControllerTest {
         response.setName("Public Group");
         response.setPublic(true);
 
-        when(workspaceService.getPublicWorkspaces()).thenReturn(List.of(response));
+        var pageable = PageRequest.of(0, 20);
+        when(workspaceService.getPublicWorkspaces(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response), pageable, 1));
 
         mockMvc.perform(get("/api/v1/workspaces/public"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].id").value("w1"));
+            .andExpect(jsonPath("$.content[0].id").value("w1"));
     }
 }
