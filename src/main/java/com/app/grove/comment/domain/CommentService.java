@@ -29,6 +29,13 @@ public class CommentService {
     @Transactional
     public CommentResponseDTO createComment(CommentRequestDTO request) {
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        if (!request.getAuthorId().equals(currentUser.getId())) {
+            throw new ForbiddenException("No puedes comentar en nombre de otro usuario.");
+        }
+
         User author = userRepository.findById(request.getAuthorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autor no encontrado"));
 
