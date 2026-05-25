@@ -1,9 +1,12 @@
 package com.app.grove.workspace.domain;
 
 import com.app.grove.concept.domain.Concept;
+import com.app.grove.exceptions.AlreadyMemberException;
+import com.app.grove.exceptions.ForbiddenException;
 import com.app.grove.events.WelcomeEmailEvent;
 import com.app.grove.events.WorkspaceInvitationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.dto.WorkspaceRequest;
@@ -18,9 +21,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
@@ -33,11 +36,17 @@ public class WorkspaceService {
 
     @Transactional
     public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User creator = (User) auth.getPrincipal();
+
         Workspace workspace = new Workspace();
         workspace.setName(request.getName());
         workspace.setDescription(request.getDescription());
         workspace.setPublic(request.isPublic());
         workspace.setCreatedAt(LocalDateTime.now());
+        workspace.setCreatedBy(creator);
+        workspace.getMembers().add(creator);
+
         workspace = workspaceRepository.save(workspace);
         return mapToResponse(workspace);
     }
@@ -58,6 +67,14 @@ public class WorkspaceService {
         Workspace workspace = workspaceRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        if (!workspace.getCreatedBy().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo el creador del workspace o un administrador pueden modificarlo.");
+        }
+
         workspace.setName(request.getName());
         workspace.setDescription(request.getDescription());
         workspace.setPublic(request.isPublic());
@@ -70,55 +87,72 @@ public class WorkspaceService {
         Workspace workspace = workspaceRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        if (!workspace.getCreatedBy().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo el creador del workspace o un administrador pueden eliminarlo.");
+        }
+
         workspaceRepository.delete(workspace);
     }
 
     @Transactional
     public WorkspaceResponse addMemberToWorkspace(String workspaceId, String userId) {
-        Workspace workspace = workspaceRepository
-            .findById(workspaceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        Workspace workspace = workspaceRepository.findById(workspaceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
+
+        boolean isMember = workspace.getMembers().stream()
+                .anyMatch(m -> m.getId().equals(currentUser.getId()));
+        if (!isMember && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo los miembros del workspace pueden agregar nuevos miembros.");
+        }
 
         User user = userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
 
-        if (!workspace.getMembers().contains(user)) {
-            workspace.getMembers().add(user);
-            workspace = workspaceRepository.save(workspace);
+        if (workspace.getMembers().contains(user)) {
+            throw new AlreadyMemberException("El usuario " + user.getUsername() + " ya es miembro del workspace.");
         }
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User inviter = (User) auth.getPrincipal();
+        workspace.getMembers().add(user);
+        workspace = workspaceRepository.save(workspace);
 
-        if (!workspace.getMembers().contains(user)) {
-            workspace.getMembers().add(user);
-            workspace = workspaceRepository.save(workspace);
-
-            String invitationLink = "http://localhost:8080/api/v1/workspaces/" + workspaceId + "/join?user=" + user.getId();
-            eventPublisher.publishEvent(new WorkspaceInvitationEvent(
-                    user.getEmail(),
-                    workspace.getName(),
-                    inviter.getUsername(),
-                    invitationLink
-            ));
-            eventPublisher.publishEvent(new WelcomeEmailEvent(
-                    user.getEmail(),
-                    user.getUsername(),
-                    workspace.getName()
-            ));
-        }
-
-
+        User inviter = currentUser;
+        String invitationLink = "http://localhost:8080/api/v1/workspaces/" + workspaceId + "/join?user=" + user.getId();
+        eventPublisher.publishEvent(new WorkspaceInvitationEvent(
+                user.getEmail(),
+                workspace.getName(),
+                inviter.getUsername(),
+                invitationLink
+        ));
+        eventPublisher.publishEvent(new WelcomeEmailEvent(
+                user.getEmail(),
+                user.getUsername(),
+                workspace.getName()
+        ));
 
         return mapToResponse(workspace);
     }
 
     @Transactional
     public WorkspaceResponse removeMemberFromWorkspace(String workspaceId, String userId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
         Workspace workspace = workspaceRepository
             .findById(workspaceId)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
+
+        if (!workspace.getCreatedBy().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo el creador del workspace o un administrador pueden eliminar miembros.");
+        }
 
         User user = userRepository
             .findById(userId)
@@ -126,9 +160,8 @@ public class WorkspaceService {
 
         if (workspace.getMembers().contains(user)) {
             workspace.getMembers().remove(user);
+            workspace = workspaceRepository.save(workspace);
         }
-
-        workspace = workspaceRepository.save(workspace);
 
         return mapToResponse(workspace);
     }
@@ -162,6 +195,9 @@ public class WorkspaceService {
         } else {
             response.setMemberIds(List.of());
         }
+
+        response.setCreatedById(workspace.getCreatedBy() != null ? workspace.getCreatedBy().getId() : null);
+
         return response;
     }
 }

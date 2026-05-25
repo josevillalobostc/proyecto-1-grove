@@ -4,10 +4,14 @@ import com.app.grove.concept.dto.ConceptRequest;
 import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.dto.ConceptUpdateRequest;
 import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.BadRequestException;
+import com.app.grove.exceptions.ForbiddenException;
+import com.app.grove.exceptions.InvalidOperationException;
 import com.app.grove.events.ConceptCreatedNotificationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
@@ -22,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 import org.springframework.stereotype.Service;
 
@@ -37,12 +42,19 @@ public class ConceptService {
 
     @Transactional
     public ConceptResponse createConcept(ConceptRequest request) {
-        Workspace workspace = workspaceRepository
-            .findById(request.getWorkspaceId())
-            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId()));
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User creator = (User) auth.getPrincipal();
+
+        Workspace workspace = workspaceRepository.findById(request.getWorkspaceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado"));
+
+        if (!workspace.isPublic()) {
+            boolean isMember = workspace.getMembers() != null && workspace.getMembers().stream()
+                    .anyMatch(m -> m.getId().equals(creator.getId()));
+            if (!isMember) {
+                throw new ForbiddenException("No eres miembro de este workspace privado.");
+            }
+        }
 
         Concept concept = new Concept();
         concept.setCreatedBy(creator);
@@ -74,6 +86,10 @@ public class ConceptService {
                 new ResourceNotFoundException("Concepto original no encontrado")
             );
 
+        if (original.getWorkspace().getId().equals(targetWorkspaceId)) {
+            throw new InvalidOperationException("No puedes copiar un concepto al mismo workspace.");
+        }
+
         Workspace targetWorkspace = workspaceRepository
             .findById(targetWorkspaceId)
             .orElseThrow(() ->
@@ -102,13 +118,18 @@ public class ConceptService {
     }
 
     @Transactional
-    public ConceptResponse updateConcept(
-        String id,
-        ConceptUpdateRequest request
-    ) {
+    public ConceptResponse updateConcept(String id, ConceptUpdateRequest request) {
         Concept concept = conceptRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        if (!concept.getCreatedBy().getId().equals(currentUser.getId()) && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo el creador del concepto o un administrador pueden modificarlo.");
+        }
+
         if (request.getTitle() != null) concept.setTitle(request.getTitle());
         if (request.getContent() != null) concept.setContent(request.getContent());
         concept.setUpdatedAt(LocalDateTime.now());
@@ -122,10 +143,21 @@ public class ConceptService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
         conceptRepository.delete(concept);
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        if (!concept.getCreatedBy().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("Solo el creador del concepto o un administrador pueden eliminarlo.");
+        }
     }
 
     @Transactional
     public ConceptResponse addPrerequisite(String conceptId,String prerequisiteId) {
+        if (conceptId.equals(prerequisiteId)) {
+            throw new InvalidOperationException("Un concepto no puede ser prerrequisito de sí mismo.");
+        }
         Concept concept = conceptRepository
             .findById(conceptId)
             .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
@@ -180,6 +212,9 @@ public class ConceptService {
     }
 
     public Page<ConceptResponse> searchByTitle(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BadRequestException("El término de búsqueda no puede estar vacío.");
+        }
         return conceptRepository.searchByTitleContaining(keyword, pageable).map(this::mapToResponse);
     }
 

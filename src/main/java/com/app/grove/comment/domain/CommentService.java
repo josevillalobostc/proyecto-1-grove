@@ -5,6 +5,7 @@ import com.app.grove.comment.dto.CommentResponseDTO;
 import com.app.grove.comment.infrastructure.CommentRepository;
 import com.app.grove.concept.domain.Concept;
 import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.ForbiddenException;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -28,6 +31,13 @@ public class CommentService {
 
     @Transactional
     public CommentResponseDTO createComment(CommentRequestDTO request) {
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        if (!request.getAuthorId().equals(currentUser.getId())) {
+            throw new ForbiddenException("No puedes comentar en nombre de otro usuario.");
+        }
 
         User author = userRepository.findById(request.getAuthorId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autor no encontrado"));

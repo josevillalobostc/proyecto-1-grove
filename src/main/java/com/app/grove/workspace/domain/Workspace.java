@@ -36,4 +36,7 @@ public class Workspace {
 
     @Relationship(type = "MEMBER_OF",direction = Relationship.Direction.INCOMING)
     private List<User> members;
+
+    @Relationship(type = "CREATED_BY", direction = Relationship.Direction.OUTGOING)
+    private User createdBy;
 }

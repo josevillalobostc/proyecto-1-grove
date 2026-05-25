@@ -14,4 +14,5 @@ public class WorkspaceResponse {
     private LocalDateTime createdAt;
     private List<String> conceptIds;
     private List<String> memberIds;
+    private String createdById;
 }
