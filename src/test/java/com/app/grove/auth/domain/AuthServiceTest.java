@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -42,13 +43,16 @@ class AuthServiceTest {
     private AuthenticationManager authenticationManager;
 
     @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    @Mock
     private Authentication authentication;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, authenticationManager, new ModelMapper());
+        authService = new AuthService(userRepository, passwordEncoder, jwtService, authenticationManager, new ModelMapper(), eventPublisher);
     }
 
     @Test

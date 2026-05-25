@@ -7,7 +7,6 @@ import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.dto.WorkspaceRequest;
 import com.app.grove.workspace.dto.WorkspaceResponse;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
-import com.app.grove.workspace.domain.Workspace;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
