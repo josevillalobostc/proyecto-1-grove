@@ -1,6 +1,8 @@
 package com.app.grove.workspace.domain;
 
 import com.app.grove.concept.domain.Concept;
+import com.app.grove.events.WelcomeEmailEvent;
+import com.app.grove.events.WorkspaceInvitationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
@@ -13,9 +15,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
@@ -81,6 +87,29 @@ public class WorkspaceService {
             workspace.getMembers().add(user);
             workspace = workspaceRepository.save(workspace);
         }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User inviter = (User) auth.getPrincipal();
+
+        if (!workspace.getMembers().contains(user)) {
+            workspace.getMembers().add(user);
+            workspace = workspaceRepository.save(workspace);
+
+            String invitationLink = "http://localhost:8080/api/v1/workspaces/" + workspaceId + "/join?user=" + user.getId();
+            eventPublisher.publishEvent(new WorkspaceInvitationEvent(
+                    user.getEmail(),
+                    workspace.getName(),
+                    inviter.getUsername(), // Nombre real de quien ejecuta la acción
+                    invitationLink
+            ));
+            eventPublisher.publishEvent(new WelcomeEmailEvent(
+                    user.getEmail(),
+                    user.getUsername(),
+                    workspace.getName()
+            ));
+        }
+
+
 
         return mapToResponse(workspace);
     }
