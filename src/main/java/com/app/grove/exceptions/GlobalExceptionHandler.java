@@ -62,4 +62,12 @@ public class GlobalExceptionHandler {
         pd.setDetail(ex.getMessage());
         return pd;
     }
+
+    @ExceptionHandler(AlreadyMemberException.class)
+    public ProblemDetail handleAlreadyMember(AlreadyMemberException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(409);
+        pd.setTitle("Already a member");
+        pd.setDetail(ex.getMessage());
+        return pd;
+    }
 }
