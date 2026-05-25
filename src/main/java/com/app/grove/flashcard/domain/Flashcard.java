@@ -11,8 +11,6 @@ import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
 import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
 
-import com.app.grove.concept.domain.Concept;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,9 +27,4 @@ public class Flashcard {
     private String hint;
     private Integer difficulty;
     private LocalDateTime createdAt;
-
-    //Relaciones
-    @Relationship(type="HAS_FLASHCARD",direction=Relationship.Direction.OUTGOING)
-    private List<Concept> concepts;
-
 }
