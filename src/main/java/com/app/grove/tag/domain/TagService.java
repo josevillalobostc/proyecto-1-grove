@@ -51,8 +51,11 @@ public class TagService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrado: " + id));
 
-        if (tagRepository.findByName(request.getName()) != null) {
-            throw new DuplicateResourceException("Ya existe una etiqueta con el nombre " + request.getName());
+        if (request.getName() != null && !request.getName().equals(tag.getName())) {
+            Tag existing = tagRepository.findByName(request.getName());
+            if (existing != null && !existing.getId().equals(id)) {
+                throw new DuplicateResourceException("Ya existe una etiqueta con el nombre " + request.getName());
+            }
         }
 
         tag.setName(request.getName());
