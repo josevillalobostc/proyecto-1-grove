@@ -33,6 +33,26 @@ public class ExerciseService {
         return exercise;
     }
 
+    public List<Exercise> findByType(String type){
+        List<Exercise> exercises=exerciseRepository.findByType(type);
+        return exercises;
+    }
+
+    public List<Exercise> findByDifficulty(Integer difficulty){
+        List<Exercise> exercises=exerciseRepository.findByDifficulty(difficulty);
+        return exercises;
+    }
+
+    public List<Exercise> findByQuestionContaining(String keyword){
+        List<Exercise> exercises=exerciseRepository.findByQuestionContaining(keyword);
+        return exercises;
+    }
+
+    public List<Exercise> findExerciseByUserId(String userId){
+        List<Exercise> exercises=exerciseRepository.findExerciseByUserId(userId);
+        return exercises;
+    }
+
     public void deleteById(String id){
         if(!exerciseRepository.existsById(id)){
             throw new ResourceNotFoundException("No se puede eliminar: El ejercicio no existe"); }
