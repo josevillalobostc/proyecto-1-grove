@@ -3,7 +3,6 @@ package com.app.grove.exercise.application;
 import com.app.grove.exercise.domain.ExerciseService;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

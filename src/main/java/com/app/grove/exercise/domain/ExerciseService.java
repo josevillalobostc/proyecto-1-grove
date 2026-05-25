@@ -29,7 +29,7 @@ public class ExerciseService {
 
     public List<ExerciseResponse> getAll(){
         return exerciseRepository.findAll().stream()
-                .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
+                .map(exercise -> modelMapper.map(exercise, ExerciseResponse.class))
                 .collect(Collectors.toList());
     }
 
@@ -42,28 +42,28 @@ public class ExerciseService {
     public List<ExerciseResponse> findByType(String type){
         List<Exercise> exercises=exerciseRepository.findByType(type);
         return exercises.stream()
-            .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
+            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
             .collect(Collectors.toList());
     }
 
     public List<ExerciseResponse> findByDifficulty(Integer difficulty){
         List<Exercise> exercises=exerciseRepository.findByDifficulty(difficulty);
         return exercises.stream()
-            .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
+            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
             .collect(Collectors.toList());
     }
 
     public List<ExerciseResponse> findByQuestionContaining(String keyword){
         List<Exercise> exercises=exerciseRepository.findByQuestionContaining(keyword);
         return exercises.stream()
-            .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
+            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
             .collect(Collectors.toList());
     }
 
     public List<ExerciseResponse> findExerciseByUserId(String userId){
         List<Exercise> exercises=exerciseRepository.findExerciseByUserId(userId);
         return exercises.stream()
-            .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
+            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
             .collect(Collectors.toList());
     }
 
