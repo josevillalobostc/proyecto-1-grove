@@ -3,6 +3,8 @@ package com.app.grove.workspace.domain;
 import com.app.grove.concept.domain.Concept;
 import com.app.grove.exceptions.AlreadyMemberException;
 import com.app.grove.exceptions.ForbiddenException;
+import com.app.grove.events.WelcomeEmailEvent;
+import com.app.grove.events.WorkspaceInvitationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -29,6 +32,7 @@ public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
@@ -118,6 +122,20 @@ public class WorkspaceService {
 
         workspace.getMembers().add(user);
         workspace = workspaceRepository.save(workspace);
+
+        User inviter = currentUser;
+        String invitationLink = "http://localhost:8080/api/v1/workspaces/" + workspaceId + "/join?user=" + user.getId();
+        eventPublisher.publishEvent(new WorkspaceInvitationEvent(
+                user.getEmail(),
+                workspace.getName(),
+                inviter.getUsername(),
+                invitationLink
+        ));
+        eventPublisher.publishEvent(new WelcomeEmailEvent(
+                user.getEmail(),
+                user.getUsername(),
+                workspace.getName()
+        ));
 
         return mapToResponse(workspace);
     }
