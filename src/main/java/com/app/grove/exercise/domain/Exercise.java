@@ -1,6 +1,7 @@
 package com.app.grove.exercise.domain;
 
 import com.app.grove.concept.domain.Concept;
+import com.app.grove.user.domain.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
