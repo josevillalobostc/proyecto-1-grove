@@ -1,5 +1,7 @@
 package com.app.grove.concept.domain;
 
+import com.app.grove.flashcard.domain.Flashcard;
+import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.workspace.domain.Workspace;
 
