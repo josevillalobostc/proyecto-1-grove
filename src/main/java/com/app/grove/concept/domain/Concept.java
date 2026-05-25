@@ -1,6 +1,9 @@
 package com.app.grove.concept.domain;
 
+import com.app.grove.flashcard.domain.Flashcard;
+import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.tag.domain.Tag;
+import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
 
 import java.time.LocalDateTime;
@@ -48,4 +51,7 @@ public class Concept {
 
     @Relationship(type = "FORKED_FROM", direction = Relationship.Direction.OUTGOING)
     private Concept forkedFrom;
+
+    @Relationship(type = "CREATED_BY", direction = Relationship.Direction.OUTGOING)
+    private User createdBy;
 }

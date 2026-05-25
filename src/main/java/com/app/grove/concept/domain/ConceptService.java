@@ -4,9 +4,11 @@ import com.app.grove.concept.dto.ConceptRequest;
 import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.dto.ConceptUpdateRequest;
 import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.events.ConceptCreatedNotificationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import jakarta.transaction.Transactional;
@@ -15,6 +17,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +33,7 @@ public class ConceptService {
     private final TagRepository tagRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public ConceptResponse createConcept(ConceptRequest request) {
@@ -32,12 +41,28 @@ public class ConceptService {
             .findById(request.getWorkspaceId())
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId()));
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User creator = (User) auth.getPrincipal();
+
         Concept concept = new Concept();
+        concept.setCreatedBy(creator);
         concept.setTitle(request.getTitle());
         concept.setContent(request.getContent());
         concept.setCreatedAt(LocalDateTime.now());
         concept.setWorkspace(workspace);
         concept = conceptRepository.save(concept);
+
+        if (workspace.getConcepts() != null) {
+            workspace.getConcepts().add(concept);
+            workspaceRepository.save(workspace);
+        }
+
+        eventPublisher.publishEvent(new ConceptCreatedNotificationEvent(
+                concept.getId(),
+                concept.getTitle(),
+                workspace.getId(),
+                creator.getId()
+        ));
         return mapToResponse(concept);
     }
 
@@ -72,12 +97,8 @@ public class ConceptService {
         return mapToResponse(concept);
     }
 
-    public List<ConceptResponse> getAllConcepts() {
-        return conceptRepository
-            .findAll()
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<ConceptResponse> getAllConcepts(Pageable pageable) {
+        return conceptRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     @Transactional
@@ -158,12 +179,8 @@ public class ConceptService {
         return mapToResponse(concept);
     }
 
-    public List<ConceptResponse> searchByTitle(String keyword) {
-        return conceptRepository
-            .searchByTitleContaining(keyword)
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<ConceptResponse> searchByTitle(String keyword, Pageable pageable) {
+        return conceptRepository.searchByTitleContaining(keyword, pageable).map(this::mapToResponse);
     }
 
     private ConceptResponse mapToResponse(Concept concept) {
@@ -176,6 +193,11 @@ public class ConceptService {
         response.setForkedFromId(
             concept.getForkedFrom() != null
                 ? concept.getForkedFrom().getId()
+                : null
+        );
+        response.setCreatedById(
+            concept.getCreatedBy() != null
+                ? concept.getCreatedBy().getId()
                 : null
         );
         if (concept.getPrerequisites() != null) {

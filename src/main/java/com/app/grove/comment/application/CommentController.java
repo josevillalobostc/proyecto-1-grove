@@ -5,14 +5,15 @@ import com.app.grove.comment.dto.CommentRequestDTO;
 import com.app.grove.comment.dto.CommentResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/api/comments")
+@RequestMapping("/api/v1/comments")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
@@ -24,13 +25,17 @@ public class CommentController {
     }
 
     @GetMapping("/concept/{conceptId}")
-    public ResponseEntity<List<CommentResponseDTO>> getByConcept(@PathVariable String conceptId) {
-        return ResponseEntity.ok(commentService.getCommentsByConcept(conceptId));
+    public ResponseEntity<Page<CommentResponseDTO>> getByConcept(
+            @PathVariable String conceptId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(commentService.getCommentsByConcept(conceptId, pageable));
     }
 
     @GetMapping("/concept/{conceptId}/root")
-    public ResponseEntity<List<CommentResponseDTO>> getRootComments(@PathVariable String conceptId) {
-        return ResponseEntity.ok(commentService.getRootCommentsByConcept(conceptId));
+    public ResponseEntity<Page<CommentResponseDTO>> getRootComments(
+            @PathVariable String conceptId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(commentService.getRootCommentsByConcept(conceptId, pageable));
     }
 
     @DeleteMapping("/{id}")

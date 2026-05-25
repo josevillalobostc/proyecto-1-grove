@@ -9,11 +9,11 @@ import com.app.grove.user.infrastructure.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,15 +34,10 @@ public class NotificationService {
         return convertToResponse(saved);
     }
 
-    @Transactional
-    public List<NotificationResponseDTO> getNotificationsByUser(String userId) {
+    public Page<NotificationResponseDTO> getNotificationsByUser(String userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-
-        List<Notification> notifications = notificationRepository.findByUser(user);
-        return notifications.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return notificationRepository.findByUser(user, pageable).map(this::convertToResponse);
     }
 
     @Transactional

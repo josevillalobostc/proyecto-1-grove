@@ -12,11 +12,11 @@ import com.app.grove.user.infrastructure.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,26 +50,16 @@ public class CommentService {
         return convertToResponse(saved);
     }
 
-    @Transactional
-    public List<CommentResponseDTO> getCommentsByConcept(String conceptId) {
+    public Page<CommentResponseDTO> getCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-
-        List<Comment> comments = commentRepository.findByConcept(concept);
-        return comments.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return commentRepository.findByConcept(concept, pageable).map(this::convertToResponse);
     }
 
-    @Transactional
-    public List<CommentResponseDTO> getRootCommentsByConcept(String conceptId) {
+    public Page<CommentResponseDTO> getRootCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-
-        List<Comment> rootComments = commentRepository.findByConceptAndParentCommentIsNull(concept);
-        return rootComments.stream()
-                .map(this::convertToResponse)
-                .collect(Collectors.toList());
+        return commentRepository.findByConceptAndParentCommentIsNull(concept, pageable).map(this::convertToResponse);
     }
 
     @Transactional
@@ -84,7 +74,7 @@ public class CommentService {
         CommentResponseDTO response = modelMapper.map(comment, CommentResponseDTO.class);
         if (comment.getAuthor() != null) {
             response.setAuthorId(comment.getAuthor().getId());
-            response.setAuthorName(comment.getAuthor().getDisplayName());
+            response.setAuthorName(comment.getAuthor().getUsername());
         }
 
         if (comment.getConcept() != null) {

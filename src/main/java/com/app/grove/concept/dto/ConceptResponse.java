@@ -10,6 +10,7 @@ public class ConceptResponse {
     private String id;
     private String title;
     private String content;
+    private String createdById;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String workspaceId;

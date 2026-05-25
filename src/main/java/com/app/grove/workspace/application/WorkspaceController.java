@@ -4,8 +4,11 @@ import com.app.grove.workspace.domain.WorkspaceService;
 import com.app.grove.workspace.dto.WorkspaceRequest;
 import com.app.grove.workspace.dto.WorkspaceResponse;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -41,13 +44,15 @@ public class WorkspaceController {
     }
 
     @GetMapping
-    public ResponseEntity<List<WorkspaceResponse>> getAllWorkspaces() {
-        return ResponseEntity.ok(workspaceService.getAllWorkspaces());
+    public ResponseEntity<Page<WorkspaceResponse>> getAllWorkspaces(
+            @PageableDefault(size = 20, sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(workspaceService.getAllWorkspaces(pageable));
     }
 
     @GetMapping("/public")
-    public ResponseEntity<List<WorkspaceResponse>> getPublicWorkspaces() {
-        return ResponseEntity.ok(workspaceService.getPublicWorkspaces());
+    public ResponseEntity<Page<WorkspaceResponse>> getPublicWorkspaces(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(workspaceService.getPublicWorkspaces(pageable));
     }
 
     @PutMapping("/{id}")

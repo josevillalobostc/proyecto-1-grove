@@ -22,4 +22,12 @@ public class GlobalExceptionHandler {
         pD.setDetail(ex.getMessage());
         return pD;
     }
+
+    @ExceptionHandler({UsernameNotFoundException.class})
+    public ProblemDetail userNotFoundHandler(UserAlreadyExistsException ex){
+        ProblemDetail pD = ProblemDetail.forStatus(404);
+        pD.setTitle("User not exists");
+        pD.setDetail(ex.getMessage());
+        return pD;
+    }
 }

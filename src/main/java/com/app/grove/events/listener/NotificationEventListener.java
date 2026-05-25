@@ -29,7 +29,7 @@ public class NotificationEventListener {
     @Transactional
     public void onConceptCreated(ConceptCreatedNotificationEvent event) {
 
-        List<User> members = workspaceRepository.findMembersByWorkspaceId(event.getWorkspaceId());
+        List<User> members = workspaceRepository.findMembersById(event.getWorkspaceId());
         User creator = userRepository.findById(event.getCreatedByUserId()).orElse(null);
 
         for (User member : members) {
