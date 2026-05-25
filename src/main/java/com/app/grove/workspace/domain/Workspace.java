@@ -4,6 +4,7 @@ import com.app.grove.concept.domain.Concept;
 import com.app.grove.user.domain.User;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -32,10 +33,10 @@ public class Workspace {
     private LocalDateTime createdAt;
 
     @Relationship(type = "BELONGS_TO",direction = Relationship.Direction.INCOMING)
-    private List<Concept> concepts;
+    private List<Concept> concepts = new ArrayList<>();
 
     @Relationship(type = "MEMBER_OF",direction = Relationship.Direction.INCOMING)
-    private List<User> members;
+    private List<User> members = new ArrayList<>();
 
     @Relationship(type = "CREATED_BY", direction = Relationship.Direction.OUTGOING)
     private User createdBy;
