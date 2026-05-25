@@ -3,6 +3,7 @@ package com.app.grove.exercise.application;
 import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.exercise.domain.ExerciseService;
 import com.app.grove.exercise.dto.ExerciseRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ public class ExerciseController {
     ExerciseService exerciseService;
 
     @PostMapping
-    public ResponseEntity<Exercise> create(@RequestBody ExerciseRequest request) {
+    public ResponseEntity<Exercise> create(@Valid @RequestBody ExerciseRequest request) {
         Exercise response = exerciseService.create(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
