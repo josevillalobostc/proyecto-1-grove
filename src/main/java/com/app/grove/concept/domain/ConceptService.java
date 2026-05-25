@@ -61,7 +61,7 @@ public class ConceptService {
                 concept.getId(),
                 concept.getTitle(),
                 workspace.getId(),
-                creator.getId() // Pasamos el ID del creador que obtuvimos de la sesión
+                creator.getId()
         ));
         return mapToResponse(concept);
     }

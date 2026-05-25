@@ -99,7 +99,7 @@ public class WorkspaceService {
             eventPublisher.publishEvent(new WorkspaceInvitationEvent(
                     user.getEmail(),
                     workspace.getName(),
-                    inviter.getUsername(), // Nombre real de quien ejecuta la acción
+                    inviter.getUsername(),
                     invitationLink
             ));
             eventPublisher.publishEvent(new WelcomeEmailEvent(
