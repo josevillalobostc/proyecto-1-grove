@@ -28,8 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import org.springframework.stereotype.Service;
-
 @Service
 @RequiredArgsConstructor
 public class ConceptService {
@@ -154,16 +152,21 @@ public class ConceptService {
     }
 
     @Transactional
-    public ConceptResponse addPrerequisite(String conceptId,String prerequisiteId) {
+    public ConceptResponse addPrerequisite(String conceptId, String prerequisiteId) {
         if (conceptId.equals(prerequisiteId)) {
             throw new InvalidOperationException("Un concepto no puede ser prerrequisito de sí mismo.");
         }
-        Concept concept = conceptRepository
-            .findById(conceptId)
-            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
-        Concept prerequisite = conceptRepository
-            .findById(prerequisiteId)
-            .orElseThrow(() -> new ResourceNotFoundException("Prerrequisito no encontrado: " + prerequisiteId));
+
+        if (conceptRepository.existsPathBetween(prerequisiteId, conceptId)) {
+            throw new InvalidOperationException(
+                "Agregar este prerrequisito crearía un ciclo en el grafo de conocimiento."
+            );
+        }
+
+        Concept concept = conceptRepository.findById(conceptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+        Concept prerequisite = conceptRepository.findById(prerequisiteId)
+                .orElseThrow(() -> new ResourceNotFoundException("Prerrequisito no encontrado: " + prerequisiteId));
 
         if (!concept.getPrerequisites().contains(prerequisite)) {
             concept.getPrerequisites().add(prerequisite);
