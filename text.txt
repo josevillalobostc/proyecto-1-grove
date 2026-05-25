@@ -1,0 +1,2221 @@
+FILE: src/main/java/com/app/grove/notification/domain/Notification.java
+package com.app.grove.notification.domain;
+
+
+import com.app.grove.user.domain.User;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+import java.time.LocalDateTime;
+
+@Node("Notification")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Notification {
+    @Id
+    @GeneratedValue(UUIDStringGenerator.class)
+    private String id;
+
+    private String message;
+    private boolean isRead;
+    private LocalDateTime createdAt;
+
+    @Relationship(type = "NOTIFIES", direction = Relationship.Direction.OUTGOING)
+    private User user;
+
+}
+\n---
+FILE: src/main/java/com/app/grove/notification/domain/NotificationService.java
+package com.app.grove.notification.domain;
+
+import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.notification.dto.NotificationRequestDTO;
+import com.app.grove.notification.dto.NotificationResponseDTO;
+import com.app.grove.notification.infrastructure.NotificationRepository;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class NotificationService {
+    private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+    @Transactional
+    public NotificationResponseDTO createNotification(NotificationRequestDTO request) {
+
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+        Notification notification = modelMapper.map(request, Notification.class);
+        notification.setCreatedAt(LocalDateTime.now());
+        notification.setUser(user);
+
+        Notification saved = notificationRepository.save(notification);
+        return convertToResponse(saved);
+    }
+
+    @Transactional
+    public List<NotificationResponseDTO> getNotificationsByUser(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        List<Notification> notifications = notificationRepository.findByUser(user);
+        return notifications.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public NotificationResponseDTO markAsRead(String notificationId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notificación no encontrada"));
+        notification.setRead(true);
+
+        Notification updated = notificationRepository.save(notification);
+        return convertToResponse(updated);
+    }
+
+    @Transactional
+    public void deleteNotification(String notificationId) {
+        if (!notificationRepository.existsById(notificationId)) {
+            throw new ResourceNotFoundException("Notificación no encontrada");
+        }
+        notificationRepository.deleteById(notificationId);
+    }
+
+    private NotificationResponseDTO convertToResponse(Notification notification) {
+        NotificationResponseDTO response = modelMapper.map(notification, NotificationResponseDTO.class);
+
+
+        if (notification.getUser() != null) {
+            response.setUserId(notification.getUser().getId());
+        }
+
+        return response;
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/notification/application/NotificationController.java
+package com.app.grove.notification.application;
+
+import com.app.grove.notification.domain.NotificationService;
+import com.app.grove.notification.dto.NotificationRequestDTO;
+import com.app.grove.notification.dto.NotificationResponseDTO;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/notifications")
+@RequiredArgsConstructor
+public class NotificationController {
+    private final NotificationService notificationService;
+
+    @PostMapping
+    public ResponseEntity<NotificationResponseDTO> create(@Valid @RequestBody NotificationRequestDTO request) {
+        NotificationResponseDTO created = notificationService.createNotification(request);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<NotificationResponseDTO>> getByUser(@PathVariable String userId) {
+        return ResponseEntity.ok(notificationService.getNotificationsByUser(userId));
+    }
+
+    @PutMapping("/{id}/read")
+    public ResponseEntity<NotificationResponseDTO> markAsRead(@PathVariable String id) {
+        return ResponseEntity.ok(notificationService.markAsRead(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        notificationService.deleteNotification(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/notification/infrastructure/NotificationRepository.java
+package com.app.grove.notification.infrastructure;
+
+import com.app.grove.notification.domain.Notification;
+
+import com.app.grove.user.domain.User;
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface NotificationRepository extends Neo4jRepository<Notification, String> {
+    List<Notification> findByUser(User user);
+}
+\n---
+FILE: src/main/java/com/app/grove/notification/dto/NotificationRequestDTO.java
+package com.app.grove.notification.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class NotificationRequestDTO {
+
+    @NotBlank(message = "El mensaje es obligatorio")
+    private String message;
+
+    @NotNull(message = "El ID del usuario es obligatorio")
+    private String userId;
+
+    private boolean isRead = false;
+
+}
+\n---
+FILE: src/main/java/com/app/grove/notification/dto/NotificationResponseDTO.java
+package com.app.grove.notification.dto;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+public class NotificationResponseDTO {
+    private String id;
+    private String message;
+    private boolean isRead;
+    private LocalDateTime createdAt;
+    private String userId;
+
+}
+\n---
+FILE: src/main/java/com/app/grove/config/SecurityConfig.java
+package com.app.grove.config;
+
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import com.app.grove.auth.domain.JwtAuthorizationFilter;
+import com.app.grove.user.domain.UserService;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(securedEnabled = true)
+public class SecurityConfig {
+
+    private final UserService userDetailsService;
+    private final JwtAuthorizationFilter jwtFilter;
+
+    public SecurityConfig(UserService userDetailsService, JwtAuthorizationFilter jwtFilter) {
+        this.userDetailsService = userDetailsService;
+        this.jwtFilter = jwtFilter;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(List.of(authenticationProvider()));
+    }
+    
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(
+                        manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+}
+\n---
+FILE: src/main/java/com/app/grove/config/AsyncConfig.java
+package com.app.grove.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.Executor;
+
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+    @Bean(name = "taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("EmailAsync-");
+        executor.initialize();
+        return executor;
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/config/ModelMapperConfig.java
+package com.app.grove.config;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class ModelMapperConfig {
+    @Bean
+    public ModelMapper modelMapper() {
+        return new ModelMapper();
+    }
+}\n---
+FILE: src/main/java/com/app/grove/comment/domain/CommentService.java
+package com.app.grove.comment.domain;
+
+import com.app.grove.comment.dto.CommentRequestDTO;
+import com.app.grove.comment.dto.CommentResponseDTO;
+import com.app.grove.comment.infrastructure.CommentRepository;
+import com.app.grove.concept.domain.Concept;
+import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class CommentService {
+    private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
+    private final ConceptRepository conceptRepository;
+    private final ModelMapper modelMapper;
+
+    @Transactional
+    public CommentResponseDTO createComment(CommentRequestDTO request) {
+
+        User author = userRepository.findById(request.getAuthorId())
+                .orElseThrow(() -> new ResourceNotFoundException("Autor no encontrado"));
+
+        Concept concept = conceptRepository.findById(request.getConceptId())
+                .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
+
+        Comment comment = modelMapper.map(request, Comment.class);
+        comment.setCreatedAt(LocalDateTime.now());
+        comment.setAuthor(author);
+        comment.setConcept(concept);
+
+        if (request.getParentCommentId() != null && !request.getParentCommentId().isEmpty()) {
+            Comment parent = commentRepository.findById(request.getParentCommentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Comentario padre no encontrado"));
+            comment.setParentComment(parent);
+        }
+
+        Comment saved = commentRepository.save(comment);
+        return convertToResponse(saved);
+    }
+
+    @Transactional
+    public List<CommentResponseDTO> getCommentsByConcept(String conceptId) {
+        Concept concept = conceptRepository.findById(conceptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
+
+        List<Comment> comments = commentRepository.findByConcept(concept);
+        return comments.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<CommentResponseDTO> getRootCommentsByConcept(String conceptId) {
+        Concept concept = conceptRepository.findById(conceptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
+
+        List<Comment> rootComments = commentRepository.findByConceptAndParentCommentIsNull(concept);
+        return rootComments.stream()
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deleteComment(String commentId) {
+        if (!commentRepository.existsById(commentId)) {
+            throw new ResourceNotFoundException("Comentario no encontrado");
+        }
+        commentRepository.deleteById(commentId);
+    }
+
+    private CommentResponseDTO convertToResponse(Comment comment) {
+        CommentResponseDTO response = modelMapper.map(comment, CommentResponseDTO.class);
+        if (comment.getAuthor() != null) {
+            response.setAuthorId(comment.getAuthor().getId());
+            response.setAuthorName(comment.getAuthor().getDisplayName());
+        }
+
+        if (comment.getConcept() != null) {
+            response.setConceptId(comment.getConcept().getId());
+        }
+
+        if (comment.getParentComment() != null) {
+            response.setParentCommentId(comment.getParentComment().getId());
+        }
+
+        return response;
+    }
+
+}
+\n---
+FILE: src/main/java/com/app/grove/comment/domain/Comment.java
+package com.app.grove.comment.domain;
+
+import com.app.grove.concept.domain.Concept;
+import com.app.grove.user.domain.User;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+import java.time.LocalDateTime;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Node("Comment")
+public class Comment {
+    @Id
+    @GeneratedValue(UUIDStringGenerator.class)
+    private String id;
+
+    private String text;
+    private LocalDateTime createdAt;
+
+
+    @Relationship(type = "COMMENTED_BY", direction = Relationship.Direction.OUTGOING)
+    private User author;
+
+    @Relationship(type = "ON_CONCEPT", direction = Relationship.Direction.OUTGOING)
+    private Concept concept;
+
+    @Relationship(type = "REPLIES_TO", direction = Relationship.Direction.OUTGOING)
+    private Comment parentComment;
+}
+\n---
+FILE: src/main/java/com/app/grove/comment/application/CommentController.java
+package com.app.grove.comment.application;
+
+import com.app.grove.comment.domain.CommentService;
+import com.app.grove.comment.dto.CommentRequestDTO;
+import com.app.grove.comment.dto.CommentResponseDTO;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/comments")
+@RequiredArgsConstructor
+public class CommentController {
+    private final CommentService commentService;
+
+    @PostMapping
+    public ResponseEntity<CommentResponseDTO> create(@Valid @RequestBody CommentRequestDTO request) {
+        CommentResponseDTO created = commentService.createComment(request);
+        return new ResponseEntity<>(created, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/concept/{conceptId}")
+    public ResponseEntity<List<CommentResponseDTO>> getByConcept(@PathVariable String conceptId) {
+        return ResponseEntity.ok(commentService.getCommentsByConcept(conceptId));
+    }
+
+    @GetMapping("/concept/{conceptId}/root")
+    public ResponseEntity<List<CommentResponseDTO>> getRootComments(@PathVariable String conceptId) {
+        return ResponseEntity.ok(commentService.getRootCommentsByConcept(conceptId));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id) {
+        commentService.deleteComment(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/comment/infrastructure/CommentRepository.java
+package com.app.grove.comment.infrastructure;
+
+import com.app.grove.comment.domain.Comment;
+import com.app.grove.concept.domain.Concept;
+
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface CommentRepository extends Neo4jRepository<Comment, String> {
+
+    List<Comment> findByConcept(Concept concept);
+    List<Comment> findByConceptAndParentCommentIsNull(Concept concept);
+}
+\n---
+FILE: src/main/java/com/app/grove/comment/dto/CommentRequestDTO.java
+package com.app.grove.comment.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+@Data
+public class CommentRequestDTO {
+    @NotBlank(message = "El texto del comentario no puede estar vacío")
+    private String text;
+
+    @NotNull(message = "El ID del autor es obligatorio")
+    private String authorId;
+
+    @NotNull(message = "El ID del concepto es obligatorio")
+    private String conceptId;
+
+    private String parentCommentId;
+}
+\n---
+FILE: src/main/java/com/app/grove/comment/dto/CommentResponseDTO.java
+package com.app.grove.comment.dto;
+
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+public class CommentResponseDTO {
+    private String id;
+    private String text;
+    private LocalDateTime createdAt;
+    private String authorId;
+    private String authorName;
+    private String conceptId;
+    private String parentCommentId;
+}
+\n---
+FILE: src/main/java/com/app/grove/user/domain/UserService.java
+package com.app.grove.user.domain;
+
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+import com.app.grove.user.infrastructure.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class UserService implements UserDetailsService{
+    private final UserRepository userRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return userRepository
+                .findByUsername(username)
+                .orElseThrow();
+    }
+}\n---
+FILE: src/main/java/com/app/grove/user/domain/Role.java
+package com.app.grove.user.domain;
+
+public enum Role {
+    ROLE_USER,
+    ROLE_ADMIN
+}\n---
+FILE: src/main/java/com/app/grove/user/domain/User.java
+package com.app.grove.user.domain;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import lombok.Data;
+
+@Data
+@Node("user")
+public class User implements UserDetails {
+
+    @Id
+    @GeneratedValue()
+    private String id;
+    private String username;
+    private String email;
+    private String password;
+    private Role role;
+    private LocalDateTime createdAt;
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role.name()));
+    }
+    
+}\n---
+FILE: src/main/java/com/app/grove/user/application/UserController.java
+\n---
+FILE: src/main/java/com/app/grove/user/infrastructure/UserRepository.java
+package com.app.grove.user.infrastructure;
+
+import java.util.Optional;
+
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+
+import com.app.grove.user.domain.User;
+
+public interface UserRepository extends Neo4jRepository<User, String>{
+    Optional<User> findByUsername(String username);
+    Boolean existsByUsername(String username);
+    Boolean existsByEmail(String username);
+}\n---
+FILE: src/main/java/com/app/grove/user/dto/UserResponse.java
+package com.app.grove.user.dto;
+
+import lombok.Data;
+
+@Data
+public class UserResponse {
+    private String id;    
+    private String username;
+    private String email;
+
+}\n---
+FILE: src/main/java/com/app/grove/user/dto/UserRequest.java
+\n---
+FILE: src/main/java/com/app/grove/concept/domain/Concept.java
+package com.app.grove.concept.domain;
+
+import com.app.grove.tag.domain.Tag;
+import com.app.grove.workspace.domain.Workspace;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+@Node
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Concept {
+
+    @Id
+    @GeneratedValue(generatorClass = UUIDStringGenerator.class)
+    private String id;
+
+    private String title;
+    private String content;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+
+    @Relationship(type = "PREREQUISITE", direction = Relationship.Direction.OUTGOING)
+    private List<Concept> prerequisites;
+
+    @Relationship(type = "TAGGED_AS",direction = Relationship.Direction.OUTGOING)
+    private List<Tag> tags;
+
+    @Relationship(type = "HAS_FLASHCARD",direction = Relationship.Direction.OUTGOING)
+    private List<Flashcard> flashcards;
+
+    @Relationship(type = "HAS_EXERCISE",direction = Relationship.Direction.OUTGOING)
+    private List<Exercise> exercises;
+
+    @Relationship(type = "BELONGS_TO", direction = Relationship.Direction.OUTGOING)
+    private Workspace workspace;
+
+    @Relationship(type = "FORKED_FROM", direction = Relationship.Direction.OUTGOING)
+    private Concept forkedFrom;
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/domain/ConceptService.java
+package com.app.grove.concept.domain;
+
+import com.app.grove.concept.dto.ConceptRequest;
+import com.app.grove.concept.dto.ConceptResponse;
+import com.app.grove.concept.dto.ConceptUpdateRequest;
+import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.tag.domain.Tag;
+import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.workspace.domain.Workspace;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ConceptService {
+
+    private final ConceptRepository conceptRepository;
+    private final TagRepository tagRepository;
+    private final WorkspaceRepository workspaceRepository;
+    private final ModelMapper modelMapper;
+
+    @Transactional
+    public ConceptResponse createConcept(ConceptRequest request) {
+        Workspace workspace = workspaceRepository
+            .findById(request.getWorkspaceId())
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId()));
+
+        Concept concept = new Concept();
+        concept.setTitle(request.getTitle());
+        concept.setContent(request.getContent());
+        concept.setCreatedAt(LocalDateTime.now());
+        concept.setWorkspace(workspace);
+        concept = conceptRepository.save(concept);
+        return mapToResponse(concept);
+    }
+
+    @Transactional
+    public ConceptResponse forkConcept(String originalConceptId, String targetWorkspaceId) {
+        Concept original = conceptRepository
+            .findById(originalConceptId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Concepto original no encontrado")
+            );
+
+        Workspace targetWorkspace = workspaceRepository
+            .findById(targetWorkspaceId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Workspace destino no encontrado")
+            );
+
+        Concept fork = new Concept();
+        fork.setTitle(original.getTitle());
+        fork.setContent(original.getContent());
+        fork.setCreatedAt(LocalDateTime.now());
+        fork.setWorkspace(targetWorkspace);
+        fork.setForkedFrom(original);
+        fork = conceptRepository.save(fork);
+        return mapToResponse(fork);
+    }
+
+    public ConceptResponse getConceptById(String id) {
+        Concept concept = conceptRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+        return mapToResponse(concept);
+    }
+
+    public List<ConceptResponse> getAllConcepts() {
+        return conceptRepository
+            .findAll()
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ConceptResponse updateConcept(
+        String id,
+        ConceptUpdateRequest request
+    ) {
+        Concept concept = conceptRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+        if (request.getTitle() != null) concept.setTitle(request.getTitle());
+        if (request.getContent() != null) concept.setContent(request.getContent());
+        concept.setUpdatedAt(LocalDateTime.now());
+        concept = conceptRepository.save(concept);
+        return mapToResponse(concept);
+    }
+
+    @Transactional
+    public void deleteConcept(String id) {
+        Concept concept = conceptRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
+        conceptRepository.delete(concept);
+    }
+
+    @Transactional
+    public ConceptResponse addPrerequisite(String conceptId,String prerequisiteId) {
+        Concept concept = conceptRepository
+            .findById(conceptId)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+        Concept prerequisite = conceptRepository
+            .findById(prerequisiteId)
+            .orElseThrow(() -> new ResourceNotFoundException("Prerrequisito no encontrado: " + prerequisiteId));
+
+        if (!concept.getPrerequisites().contains(prerequisite)) {
+            concept.getPrerequisites().add(prerequisite);
+            concept = conceptRepository.save(concept);
+        }
+        return mapToResponse(concept);
+    }
+
+    @Transactional
+    public ConceptResponse removePrerequisite(String conceptId, String prerequisiteId) {
+        Concept concept = conceptRepository
+            .findById(conceptId)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+        concept
+            .getPrerequisites()
+            .removeIf(p -> p.getId().equals(prerequisiteId));
+        concept = conceptRepository.save(concept);
+        return mapToResponse(concept);
+    }
+
+    @Transactional
+    public ConceptResponse addTagToConcept(String conceptId, String tagId) {
+        Concept concept = conceptRepository
+            .findById(conceptId)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+
+        Tag tag = tagRepository
+            .findById(tagId)
+            .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrado: " + tagId));
+        if (!concept.getTags().contains(tag)) {
+            concept.getTags().add(tag);
+            concept = conceptRepository.save(concept);
+        }
+        return mapToResponse(concept);
+    }
+
+    @Transactional
+    public ConceptResponse removeTagFromConcept(String conceptId, String tagId) {
+        Concept concept = conceptRepository
+            .findById(conceptId)
+            .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + conceptId));
+
+        concept.getTags().removeIf(t -> t.getId().equals(tagId));
+        concept = conceptRepository.save(concept);
+        return mapToResponse(concept);
+    }
+
+    public List<ConceptResponse> searchByTitle(String keyword) {
+        return conceptRepository
+            .searchByTitleContaining(keyword)
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    private ConceptResponse mapToResponse(Concept concept) {
+        ConceptResponse response = modelMapper.map(concept, ConceptResponse.class);
+        response.setWorkspaceId(
+            concept.getWorkspace() != null
+                ? concept.getWorkspace().getId()
+                : null
+        );
+        response.setForkedFromId(
+            concept.getForkedFrom() != null
+                ? concept.getForkedFrom().getId()
+                : null
+        );
+        if (concept.getPrerequisites() != null) {
+            response.setPrerequisiteIds(
+                concept
+                    .getPrerequisites()
+                    .stream()
+                    .map(Concept::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setPrerequisiteIds(List.of());
+        }
+        if (concept.getTags() != null) {
+            response.setTagIds(
+                concept
+                    .getTags()
+                    .stream()
+                    .map(Tag::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setTagIds(List.of());
+        }
+        return response;
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/application/ConceptController.java
+package com.app.grove.concept.application;
+
+import com.app.grove.concept.domain.ConceptService;
+import com.app.grove.concept.dto.ConceptRequest;
+import com.app.grove.concept.dto.ConceptResponse;
+import com.app.grove.concept.dto.ConceptUpdateRequest;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/concepts")
+@RequiredArgsConstructor
+public class ConceptController {
+
+    private final ConceptService conceptService;
+
+    @PostMapping
+    public ResponseEntity<ConceptResponse> createConcept(
+        @Valid @RequestBody ConceptRequest request
+    ) {
+        ConceptResponse response = conceptService.createConcept(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ConceptResponse> getConcept(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getConceptById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<ConceptResponse>> getAllConcepts() {
+        return ResponseEntity.ok(conceptService.getAllConcepts());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<ConceptResponse>> searchByTitle(
+        @RequestParam String keyword
+    ) {
+        return ResponseEntity.ok(conceptService.searchByTitle(keyword));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ConceptResponse> updateConcept(
+        @PathVariable String id,
+        @Valid @RequestBody ConceptUpdateRequest request
+    ) {
+        return ResponseEntity.ok(conceptService.updateConcept(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteConcept(@PathVariable String id) {
+        conceptService.deleteConcept(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/fork")
+    public ResponseEntity<ConceptResponse> forkConcept(
+        @PathVariable String id,
+        @RequestParam String targetWorkspaceId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            conceptService.forkConcept(id, targetWorkspaceId)
+        );
+    }
+
+    @PostMapping("/{id}/prerequisites/{prereqId}")
+    public ResponseEntity<ConceptResponse> addPrerequisite(
+        @PathVariable String id,
+        @PathVariable String prereqId
+    ) {
+        return ResponseEntity.ok(conceptService.addPrerequisite(id, prereqId));
+    }
+
+    @DeleteMapping("/{id}/prerequisites/{prereqId}")
+    public ResponseEntity<ConceptResponse> removePrerequisite(
+        @PathVariable String id,
+        @PathVariable String prereqId
+    ) {
+        return ResponseEntity.ok(
+            conceptService.removePrerequisite(id, prereqId)
+        );
+    }
+
+    @PostMapping("/{id}/tags/{tagId}")
+    public ResponseEntity<ConceptResponse> addTag(
+        @PathVariable String id,
+        @PathVariable String tagId
+    ) {
+        return ResponseEntity.ok(conceptService.addTagToConcept(id, tagId));
+    }
+
+    @DeleteMapping("/{id}/tags/{tagId}")
+    public ResponseEntity<ConceptResponse> removeTag(
+        @PathVariable String id,
+        @PathVariable String tagId
+    ) {
+        return ResponseEntity.ok(
+            conceptService.removeTagFromConcept(id, tagId)
+        );
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/infrastructure/ConceptRepositoryTest.java
+\n---
+FILE: src/main/java/com/app/grove/concept/infrastructure/ConceptRepository.java
+package com.app.grove.concept.infrastructure;
+
+import com.app.grove.concept.domain.Concept;
+import java.util.List;
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+import org.springframework.data.neo4j.repository.query.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface ConceptRepository extends Neo4jRepository<Concept, String> {
+    Concept findByTitle(String title);
+
+    @Query(
+        "MATCH (c:Concept) WHERE toLower(c.title) CONTAINS toLower($keyword) RETURN c"
+    )
+    List<Concept> searchByTitleContaining(@Param("keyword") String keyword);
+
+    @Query(
+        "MATCH (start:Concept)-[:PREREQUISITE*]->(target:Concept) " +
+            "WHERE target.id = $conceptId RETURN DISTINCT start " +
+            "ORDER BY size((start)-[:PREREQUISITE*]->(target))"
+    )
+    List<Concept> findAllPrerequisites(@Param("conceptId") String conceptId);
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/dto/ConceptResponse.java
+package com.app.grove.concept.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+public class ConceptResponse {
+
+    private String id;
+    private String title;
+    private String content;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String workspaceId;
+    private String forkedFromId;
+    private List<String> prerequisiteIds;
+    private List<String> tagIds;
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/dto/ConceptRequest.java
+package com.app.grove.concept.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class ConceptRequest {
+
+    @NotBlank(message = "El título es obligatorio")
+    @Size(max = 200)
+    private String title;
+
+    @NotBlank(message = "El contenido es obligatorio")
+    private String content;
+
+    @NotBlank(message = "El workspace es obligatorio")
+    private String workspaceId;
+}
+\n---
+FILE: src/main/java/com/app/grove/concept/dto/ConceptUpdateRequest.java
+package com.app.grove.concept.dto;
+
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class ConceptUpdateRequest {
+
+    @Size(max = 200)
+    private String title;
+
+    private String content;
+}
+\n---
+FILE: src/main/java/com/app/grove/events/NewCommentNotificationEvent.java
+package com.app.grove.events;
+
+import lombok.Value;
+
+@Value
+public class NewCommentNotificationEvent {
+    String conceptId;
+    String conceptTitle;
+    String commentText;
+    String commentAuthorName;
+    String conceptAuthorId;
+}
+\n---
+FILE: src/main/java/com/app/grove/events/listener/EmailEventListener.java
+package com.app.grove.events.listener;
+
+import com.app.grove.events.WelcomeEmailEvent;
+import com.app.grove.events.WorkspaceInvitationEvent;
+import com.app.grove.events.util.EmailService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class EmailEventListener {
+    private final EmailService emailService;
+
+    @Async
+    @EventListener
+    public void handleWorkspaceInvitation(WorkspaceInvitationEvent event) {
+        String subject = "Invitación al workspace: " + event.getWorkspaceName();
+        String body = String.format(
+                "Hola,\n\n%s te ha invitado a unirte al workspace '%s'.\n\nPara aceptar, haz clic en el siguiente enlace:\n%s\n\nSaludos.",
+                event.getInvitedByUserName(),
+                event.getWorkspaceName(),
+                event.getInvitationLink()
+        );
+        emailService.sendSimpleEmail(event.getInvitedUserEmail(), subject, body);
+    }
+
+    @Async
+    @EventListener
+    public void handleWelcomeEmail(WelcomeEmailEvent event) {
+        String subject = "¡Bienvenido a " + event.getWorkspaceName() + "!";
+        String body = String.format(
+                "Hola %s,\n\nTe damos la bienvenida al workspace '%s'. Ya puedes colaborar y aprender.\n\nSaludos cordiales.",
+                event.getUserName(),
+                event.getWorkspaceName()
+        );
+        emailService.sendSimpleEmail(event.getUserEmail(), subject, body);
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/events/listener/NotificationEventListener.java
+package com.app.grove.events.listener;
+
+import com.app.grove.events.ConceptCreatedNotificationEvent;
+import com.app.grove.events.NewCommentNotificationEvent;
+import com.app.grove.notification.domain.Notification;
+import com.app.grove.notification.infrastructure.NotificationRepository;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class NotificationEventListener {
+    private final WorkspaceRepository workspaceRepository;
+    private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+
+    @EventListener
+    @Transactional
+    public void onConceptCreated(ConceptCreatedNotificationEvent event) {
+
+        List<User> members = workspaceRepository.findMembersByWorkspaceId(event.getWorkspaceId());
+        User creator = userRepository.findById(event.getCreatedByUserId()).orElse(null);
+
+        for (User member : members) {
+            if (creator != null && member.getId().equals(creator.getId())) {
+                continue;
+            }
+            Notification notification = new Notification();
+            notification.setMessage("Nuevo concepto: " + event.getConceptTitle() + " en tu workspace");
+            notification.setRead(false);
+            notification.setCreatedAt(LocalDateTime.now());
+            notification.setUser(member);
+            notificationRepository.save(notification);
+        }
+        log.info("Notificaciones creadas para {} miembros del workspace {}", members.size() - (creator != null ? 1 : 0), event.getWorkspaceId());
+    }
+
+    @EventListener
+    @Transactional
+    public void onNewComment(NewCommentNotificationEvent event) {
+
+        User conceptAuthor = userRepository.findById(event.getConceptAuthorId()).orElse(null);
+        if (conceptAuthor == null) {
+            log.warn("No se encontró el autor del concepto {}", event.getConceptId());
+            return;
+        }
+
+        Notification notification = new Notification();
+        notification.setMessage(event.getCommentAuthorName() + " comentó en tu concepto '" + event.getConceptTitle() + "': " + event.getCommentText());
+        notification.setRead(false);
+        notification.setCreatedAt(LocalDateTime.now());
+        notification.setUser(conceptAuthor);
+        notificationRepository.save(notification);
+        log.info("Notificación enviada al autor del concepto {}", event.getConceptAuthorId());
+    }
+}
+
+
+
+\n---
+FILE: src/main/java/com/app/grove/events/util/EmailService.java
+package com.app.grove.events.util;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class EmailService {
+    private final JavaMailSender mailSender;
+
+    public void sendSimpleEmail(String to, String subject, String text) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+            log.info("Correo enviado exitosamente a: {}", to);
+        } catch (Exception e) {
+            log.error("Error al enviar correo a {}: {}", to, e.getMessage(), e);
+        }
+    }
+
+}
+\n---
+FILE: src/main/java/com/app/grove/events/WorkspaceInvitationEvent.java
+package com.app.grove.events;
+import lombok.Value;
+
+@Value
+public class WorkspaceInvitationEvent {
+    String invitedUserEmail;
+    String workspaceName;
+    String invitedByUserName;
+    String invitationLink;
+}
+\n---
+FILE: src/main/java/com/app/grove/events/WelcomeEmailEvent.java
+package com.app.grove.events;
+
+import lombok.Value;
+
+@Value
+public class WelcomeEmailEvent {
+    String userEmail;
+    String userName;
+    String workspaceName;
+}
+\n---
+FILE: src/main/java/com/app/grove/events/ConceptCreatedNotificationEvent.java
+package com.app.grove.events;
+
+import lombok.Value;
+
+@Value
+public class ConceptCreatedNotificationEvent {
+    String conceptId;
+    String conceptTitle;
+    String workspaceId;
+    String createdByUserId;
+
+}
+\n---
+FILE: src/main/java/com/app/grove/GroveApplication.java
+package com.app.grove;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class GroveApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(GroveApplication.class, args);
+	}
+
+}
+\n---
+FILE: src/main/java/com/app/grove/exceptions/ResourceNotFoundException.java
+package com.app.grove.exceptions;
+
+public class ResourceNotFoundException extends RuntimeException {
+
+    public ResourceNotFoundException(String message) {
+        super(message);
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/exceptions/GlobalExceptionHandler.java
+package com.app.grove.exceptions;
+
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler({ResourceNotFoundException.class})
+    public ProblemDetail resourceNotFoundException(ResourceNotFoundException ex){
+        ProblemDetail pD = ProblemDetail.forStatus(404);
+        pD.setTitle("Resource not found");
+        pD.setDetail(ex.getMessage());
+        return pD;
+    }
+
+    @ExceptionHandler({UserAlreadyExistsException.class})
+    public ProblemDetail userExistsHandler(UserAlreadyExistsException ex){
+        ProblemDetail pD = ProblemDetail.forStatus(409);
+        pD.setTitle("User already exists");
+        pD.setDetail(ex.getMessage());
+        return pD;
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/exceptions/UserAlreadyExistsException.java
+package com.app.grove.exceptions;
+
+public class UserAlreadyExistsException extends RuntimeException{
+    public UserAlreadyExistsException(String message) {
+        super(message);
+    }
+}\n---
+FILE: src/main/java/com/app/grove/tag/domain/TagService.java
+package com.app.grove.tag.domain;
+
+import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.tag.dto.TagRequest;
+import com.app.grove.tag.dto.TagResponse;
+import com.app.grove.tag.infrastructure.TagRepository;
+import jakarta.transaction.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class TagService {
+
+    private final TagRepository tagRepository;
+    private final ModelMapper modelMapper;
+
+    @Transactional
+    public TagResponse createTag(TagRequest request) {
+        Tag tag = new Tag();
+        tag.setName(request.getName());
+        tag.setDescription(request.getDescription());
+        tag.setColor(request.getColor());
+        tag = tagRepository.save(tag);
+        return modelMapper.map(tag, TagResponse.class);
+    }
+
+    public TagResponse getTagById(String id) {
+        Tag tag = tagRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Tag no encontrado: " + id)
+            );
+        return modelMapper.map(tag, TagResponse.class);
+    }
+
+    public List<TagResponse> getAllTags() {
+        return tagRepository
+            .findAll()
+            .stream()
+            .map(tag -> modelMapper.map(tag, TagResponse.class))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TagResponse updateTag(String id, TagRequest request) {
+        Tag tag = tagRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Tag no encontrado: " + id)
+            );
+        tag.setName(request.getName());
+        tag.setDescription(request.getDescription());
+        tag.setColor(request.getColor());
+        tag = tagRepository.save(tag);
+        return modelMapper.map(tag, TagResponse.class);
+    }
+
+    @Transactional
+    public void deleteTag(String id) {
+        Tag tag = tagRepository
+            .findById(id)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Tag no encontrado: " + id)
+            );
+        tagRepository.delete(tag);
+    }
+
+    public List<TagResponse> searchByName(String keyword) {
+        return tagRepository
+            .searchByName(keyword)
+            .stream()
+            .map(tag -> modelMapper.map(tag, TagResponse.class))
+            .collect(Collectors.toList());
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/tag/domain/Tag.java
+package com.app.grove.tag.domain;
+
+import com.app.grove.concept.domain.Concept;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+@Node
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Tag {
+
+    @Id
+    @GeneratedValue(generatorClass = UUIDStringGenerator.class)
+    private String id;
+
+    private String name;
+    private String description;
+    private String color;
+
+    @Relationship(
+        type = "TAGGED_AS",
+        direction = Relationship.Direction.INCOMING
+    )
+    private List<Concept> concepts;
+}
+\n---
+FILE: src/main/java/com/app/grove/tag/application/TagController.java
+package com.app.grove.tag.application;
+
+import com.app.grove.tag.domain.TagService;
+import com.app.grove.tag.dto.TagRequest;
+import com.app.grove.tag.dto.TagResponse;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/tags")
+@RequiredArgsConstructor
+public class TagController {
+
+    private final TagService tagService;
+
+    @PostMapping
+    public ResponseEntity<TagResponse> createTag(
+        @Valid @RequestBody TagRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            tagService.createTag(request)
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<TagResponse> getTag(@PathVariable String id) {
+        return ResponseEntity.ok(tagService.getTagById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<TagResponse>> getAllTags() {
+        return ResponseEntity.ok(tagService.getAllTags());
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<TagResponse>> searchByName(
+        @RequestParam String keyword
+    ) {
+        return ResponseEntity.ok(tagService.searchByName(keyword));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<TagResponse> updateTag(
+        @PathVariable String id,
+        @Valid @RequestBody TagRequest request
+    ) {
+        return ResponseEntity.ok(tagService.updateTag(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTag(@PathVariable String id) {
+        tagService.deleteTag(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/tag/infrastructure/TagRepository.java
+package com.app.grove.tag.infrastructure;
+
+import com.app.grove.tag.domain.Tag;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+import org.springframework.data.neo4j.repository.query.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface TagRepository extends Neo4jRepository<Tag, String> {
+    Tag findByName(String name);
+
+    Optional<Tag> findById(String id);
+
+    @Query(
+        "MATCH (t:Tag) WHERE toLower(t.name) CONTAINS toLower($keyword) RETURN t"
+    )
+    List<Tag> searchByName(@Param("keyword") String keyword);
+}
+\n---
+FILE: src/main/java/com/app/grove/tag/dto/TagRequest.java
+package com.app.grove.tag.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class TagRequest {
+
+    @NotBlank(message = "El nombre de la etiqueta es obligatorio")
+    private String name;
+
+    private String description;
+    private String color;
+}
+\n---
+FILE: src/main/java/com/app/grove/tag/dto/TagResponse.java
+package com.app.grove.tag.dto;
+
+import lombok.Data;
+
+@Data
+public class TagResponse {
+
+    private String id;
+    private String name;
+    private String description;
+    private String color;
+}
+\n---
+FILE: src/main/java/com/app/grove/auth/domain/AuthService.java
+package com.app.grove.auth.domain;
+
+import org.modelmapper.ModelMapper;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.app.grove.auth.dto.SignInRequest;
+import com.app.grove.auth.dto.SignUpRequest;
+import com.app.grove.auth.dto.TokenResponse;
+import com.app.grove.exceptions.UserAlreadyExistsException;
+import com.app.grove.user.domain.Role;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.dto.UserResponse;
+import com.app.grove.user.infrastructure.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final ModelMapper modelMapper;
+
+    public UserResponse signUp(SignUpRequest request){
+        String username = request.getUsername();
+        String email = request.getEmail();
+        if(userRepository.existsByUsername(username)){
+            throw new UserAlreadyExistsException("Ya existe un usuario con dicho username");            
+        }
+        
+        if(userRepository.existsByEmail(email)){
+            throw new UserAlreadyExistsException("Ya existe un usuario con dicho email");            
+        }
+        
+        
+        User account = new User();
+        account.setUsername(request.getUsername());
+        account.setEmail((request.getEmail()));
+        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        account.setRole(Role.ROLE_USER);
+        User savedUser = userRepository.save(account);
+        return modelMapper.map(savedUser,UserResponse.class);
+    }
+
+    public TokenResponse signIn(SignInRequest request){
+        String username = request.getUsername();
+        String password = request.getPassword();
+
+        
+        authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(username, password)
+
+        );
+        User account = userRepository.findByUsername(username).orElseThrow();
+        String token = jwtService.generateToken(account);
+        TokenResponse response = new TokenResponse(token);
+        return response;
+        
+    }
+    
+}\n---
+FILE: src/main/java/com/app/grove/auth/domain/JwtAuthorizationFilter.java
+package com.app.grove.auth.domain;
+import java.io.IOException;
+
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.app.grove.user.domain.UserService;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+
+@Component
+@RequiredArgsConstructor
+public class JwtAuthorizationFilter extends OncePerRequestFilter{
+
+    private final UserService userDetailsService;
+    private final JwtService jwtService;
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
+            throws ServletException, IOException {
+
+        final String authHeader = request.getHeader("Authorization");
+
+        if (StringUtils.hasText(authHeader) && StringUtils.startsWithIgnoreCase(authHeader, "Bearer ")) {
+            String token = authHeader.substring(7);
+
+            if (jwtService.isTokenValid(token)) {
+                String username = jwtService.extractUsername(token);
+
+                if (StringUtils.hasText(username)
+                        && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    SecurityContext context = SecurityContextHolder.createEmptyContext();
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    context.setAuthentication(authToken);
+                    SecurityContextHolder.setContext(context);
+                }
+            }
+        }
+        filterChain.doFilter(request, response);
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/auth/domain/JwtService.java
+package com.app.grove.auth.domain;
+
+import java.security.Key;
+import java.util.Date;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
+@Component
+public class JwtService {
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expiration-access}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.expiration-refresh}")
+    private Long refreshTokenExpiration;
+
+
+    private Key getSigningKey() {
+        return Keys.hmacShaKeyFor(secret.getBytes());
+    }
+
+    public String generateToken(UserDetails userDetails) {
+        Date now = new Date();
+        return Jwts.builder()
+                .subject(userDetails.getUsername())
+                .claim("roles", userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
+                .issuedAt(now)
+                .expiration(new Date(now.getTime() + accessTokenExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public boolean isTokenValid(String token) {
+        try {
+            Jwts.parser()
+                    .verifyWith((SecretKey) getSigningKey())
+                    .build()
+                    .parseSignedClaims(token);
+
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+
+        }
+    }
+
+    public String extractUsername(String token) {
+        return Jwts.parser()
+                .verifyWith((SecretKey) getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+    }
+}\n---
+FILE: src/main/java/com/app/grove/auth/application/AuthController.java
+package com.app.grove.auth.application;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.app.grove.auth.domain.AuthService;
+import com.app.grove.auth.dto.SignInRequest;
+import com.app.grove.auth.dto.SignUpRequest;
+import com.app.grove.auth.dto.TokenResponse;
+import com.app.grove.user.dto.UserResponse;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody SignUpRequest request){
+        UserResponse response = authService.signUp(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody SignInRequest request){
+        TokenResponse response = authService.signIn(request);
+        return ResponseEntity.ok(response);
+    }
+	
+}\n---
+FILE: src/main/java/com/app/grove/auth/dto/SignInRequest.java
+package com.app.grove.auth.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class SignInRequest {
+    @NotBlank
+    private String username;
+    @NotBlank
+	private String password;
+}\n---
+FILE: src/main/java/com/app/grove/auth/dto/SignUpRequest.java
+package com.app.grove.auth.dto;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class SignUpRequest {
+    @NotBlank
+    private String username;
+
+    @Email
+    private String email;
+
+    @NotBlank
+    private String password;	
+}\n---
+FILE: src/main/java/com/app/grove/auth/dto/TokenResponse.java
+package com.app.grove.auth.dto;
+
+public class TokenResponse {
+    private String token;
+
+    public TokenResponse(String token) {
+        this.token = token;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+}\n---
+FILE: src/main/java/com/app/grove/workspace/domain/Workspace.java
+package com.app.grove.workspace.domain;
+
+import com.app.grove.concept.domain.Concept;
+import com.app.grove.user.domain.User;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.springframework.data.neo4j.core.schema.GeneratedValue;
+import org.springframework.data.neo4j.core.schema.Id;
+import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.support.UUIDStringGenerator;
+
+@Node
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Workspace {
+
+    @Id
+    @GeneratedValue(generatorClass = UUIDStringGenerator.class)
+    private String id;
+
+    private String name;
+    private String description;
+    private boolean isPublic;
+    private LocalDateTime createdAt;
+
+    @Relationship(type = "BELONGS_TO",direction = Relationship.Direction.INCOMING)
+    private List<Concept> concepts;
+
+    @Relationship(type = "MEMBER_OF",direction = Relationship.Direction.INCOMING)
+    private List<User> members;
+}
+\n---
+FILE: src/main/java/com/app/grove/workspace/domain/WorkspaceService.java
+package com.app.grove.workspace.domain;
+
+import com.app.grove.concept.domain.Concept;
+import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
+import com.app.grove.workspace.dto.WorkspaceRequest;
+import com.app.grove.workspace.dto.WorkspaceResponse;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+import jakarta.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class WorkspaceService {
+
+    private final WorkspaceRepository workspaceRepository;
+    private final UserRepository userRepository;
+    private final ModelMapper modelMapper;
+
+    @Transactional
+    public WorkspaceResponse createWorkspace(WorkspaceRequest request) {
+        Workspace workspace = new Workspace();
+        workspace.setName(request.getName());
+        workspace.setDescription(request.getDescription());
+        workspace.setPublic(request.isPublic());
+        workspace.setCreatedAt(LocalDateTime.now());
+        workspace = workspaceRepository.save(workspace);
+        return mapToResponse(workspace);
+    }
+
+    public WorkspaceResponse getWorkspaceById(String id) {
+        Workspace workspace = workspaceRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+        return mapToResponse(workspace);
+    }
+
+    public List<WorkspaceResponse> getAllWorkspaces() {
+        return workspaceRepository
+            .findAll()
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public WorkspaceResponse updateWorkspace(String id, WorkspaceRequest request) {
+        Workspace workspace = workspaceRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+        workspace.setName(request.getName());
+        workspace.setDescription(request.getDescription());
+        workspace.setPublic(request.isPublic());
+        workspace = workspaceRepository.save(workspace);
+        return mapToResponse(workspace);
+    }
+
+    @Transactional
+    public void deleteWorkspace(String id) {
+        Workspace workspace = workspaceRepository
+            .findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + id));
+        workspaceRepository.delete(workspace);
+    }
+
+    @Transactional
+    public WorkspaceResponse addMemberToWorkspace(String workspaceId, String userId) {
+        Workspace workspace = workspaceRepository
+            .findById(workspaceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
+
+        User user = userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
+
+        if (!workspace.getMembers().contains(user)) {
+            workspace.getMembers().add(user);
+            workspace = workspaceRepository.save(workspace);
+        }
+
+        return mapToResponse(workspace);
+    }
+
+    @Transactional
+    public WorkspaceResponse removeMemberFromWorkspace(String workspaceId, String userId) {
+        Workspace workspace = workspaceRepository
+            .findById(workspaceId)
+            .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
+
+        User user = userRepository
+            .findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
+
+        if (workspace.getMembers().contains(user)) {
+            workspace.getMembers().remove(user);
+        }
+
+        workspace = workspaceRepository.save(workspace);
+
+        return mapToResponse(workspace);
+    }
+
+    public List<WorkspaceResponse> getPublicWorkspaces() {
+        return workspaceRepository
+            .findByIsPublicTrue()
+            .stream()
+            .map(this::mapToResponse)
+            .collect(Collectors.toList());
+    }
+
+    private WorkspaceResponse mapToResponse(Workspace workspace) {
+        WorkspaceResponse response = modelMapper.map(workspace, WorkspaceResponse.class);
+
+        if (workspace.getConcepts() != null) {
+            response.setConceptIds(
+                workspace
+                    .getConcepts()
+                    .stream()
+                    .map(Concept::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setConceptIds(List.of());
+        }
+        if (workspace.getMembers() != null) {
+            response.setMemberIds(
+                workspace
+                    .getMembers()
+                    .stream()
+                    .map(User::getId)
+                    .collect(Collectors.toList())
+            );
+        } else {
+            response.setMemberIds(List.of());
+        }
+        return response;
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/workspace/application/WorkspaceController.java
+package com.app.grove.workspace.application;
+
+import com.app.grove.workspace.domain.WorkspaceService;
+import com.app.grove.workspace.dto.WorkspaceRequest;
+import com.app.grove.workspace.dto.WorkspaceResponse;
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/v1/workspaces")
+@RequiredArgsConstructor
+public class WorkspaceController {
+
+    private final WorkspaceService workspaceService;
+
+    @PostMapping
+    public ResponseEntity<WorkspaceResponse> createWorkspace(
+        @Valid @RequestBody WorkspaceRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            workspaceService.createWorkspace(request)
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<WorkspaceResponse> getWorkspace(
+        @PathVariable String id
+    ) {
+        return ResponseEntity.ok(workspaceService.getWorkspaceById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<WorkspaceResponse>> getAllWorkspaces() {
+        return ResponseEntity.ok(workspaceService.getAllWorkspaces());
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<WorkspaceResponse>> getPublicWorkspaces() {
+        return ResponseEntity.ok(workspaceService.getPublicWorkspaces());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<WorkspaceResponse> updateWorkspace(
+        @PathVariable String id,
+        @Valid @RequestBody WorkspaceRequest request
+    ) {
+        return ResponseEntity.ok(workspaceService.updateWorkspace(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteWorkspace(@PathVariable String id) {
+        workspaceService.deleteWorkspace(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/members/{userId}")
+    public ResponseEntity<WorkspaceResponse> addMember(
+        @PathVariable String id,
+        @PathVariable String userId
+    ) {
+        return ResponseEntity.ok(
+            workspaceService.addMemberToWorkspace(id, userId)
+        );
+    }
+
+    @DeleteMapping("/{id}/members/{userId}")
+    public ResponseEntity<WorkspaceResponse> removeMember(
+        @PathVariable String id,
+        @PathVariable String userId
+    ) {
+        return ResponseEntity.ok(
+            workspaceService.removeMemberFromWorkspace(id, userId)
+        );
+    }
+}
+\n---
+FILE: src/main/java/com/app/grove/workspace/infrastructure/WorkspaceRepository.java
+package com.app.grove.workspace.infrastructure;
+
+import com.app.grove.user.domain.User;
+import com.app.grove.workspace.domain.Workspace;
+import java.util.List;
+import org.springframework.data.neo4j.repository.Neo4jRepository;
+import org.springframework.data.neo4j.repository.query.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface WorkspaceRepository extends Neo4jRepository<Workspace, String> {
+    Workspace findByName(String name);
+
+    @Query("MATCH (u:User {id: $userId})-[:MEMBER_OF]->(w:Workspace) RETURN w")
+    public List<Workspace> findByMemberId(@Param("userId") String userId);
+
+    public List<Workspace> findByIsPublicTrue();
+
+    public List<User> findMembersByWorkspaceId(String id);
+}
+\n---
+FILE: src/main/java/com/app/grove/workspace/dto/WorkspaceResponse.java
+package com.app.grove.workspace.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import lombok.Data;
+
+@Data
+public class WorkspaceResponse {
+
+    private String id;
+    private String name;
+    private String description;
+    private boolean isPublic;
+    private LocalDateTime createdAt;
+    private List<String> conceptIds;
+    private List<String> memberIds;
+}
+\n---
+FILE: src/main/java/com/app/grove/workspace/dto/WorkspaceRequest.java
+package com.app.grove.workspace.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class WorkspaceRequest {
+
+    @NotBlank(message = "El nombre del workspace es obligatorio")
+    private String name;
+
+    private String description;
+
+    private boolean isPublic;
+}
+\n---

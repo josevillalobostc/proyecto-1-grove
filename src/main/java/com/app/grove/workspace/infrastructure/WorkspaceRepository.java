@@ -15,5 +15,6 @@ public interface WorkspaceRepository extends Neo4jRepository<Workspace, String> 
 
     public List<Workspace> findByIsPublicTrue();
 
+    @Query("MATCH (w:Workspace {id: $id})<-[:MEMBER_OF]-(u:User) RETURN u")
     public List<User> findMembersByWorkspaceId(String id);
 }
