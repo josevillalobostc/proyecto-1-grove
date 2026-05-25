@@ -2,7 +2,7 @@ package com.app.grove.exercise.domain;
 
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.exercise.infrastructure.ExerciseRepository;
-import com.app.grove.flashcard.dto.ExerciseRequest;
+import com.app.grove.exercise.dto.ExerciseRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
