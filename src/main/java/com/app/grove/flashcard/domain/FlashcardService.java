@@ -27,7 +27,7 @@ public class FlashcardService {
 
     public List<FlashcardResponse> getAll(){
         return flashcardRepository.findAll().stream()
-                .map(flashcard -> modelMapper.map(this,FlashcardResponse.class))
+                .map(flashcard -> modelMapper.map(flashcard,FlashcardResponse.class))
                 .collect(Collectors.toList());
     }
 
@@ -40,7 +40,7 @@ public class FlashcardService {
     public List<FlashcardResponse> findByDifficulty(Integer difficulty){
         List<Flashcard> flashcards=flashcardRepository.findByDifficulty(difficulty);
         return flashcards.stream()
-                .map(flashcard->modelMapper.map(this,FlashcardResponse.class))
+                .map(flashcard->modelMapper.map(flashcard,FlashcardResponse.class))
                 .collect(Collectors.toList());
     }
 
