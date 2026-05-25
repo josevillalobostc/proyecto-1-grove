@@ -84,7 +84,7 @@ public class CommentService {
         CommentResponseDTO response = modelMapper.map(comment, CommentResponseDTO.class);
         if (comment.getAuthor() != null) {
             response.setAuthorId(comment.getAuthor().getId());
-            response.setAuthorName(comment.getAuthor().getDisplayName());
+            response.setAuthorName(comment.getAuthor().getUsername());
         }
 
         if (comment.getConcept() != null) {
