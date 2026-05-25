@@ -5,11 +5,13 @@ import com.app.grove.flashcard.dto.FlashcardRequest;
 import com.app.grove.flashcard.dto.FlashcardResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/flashcards")
@@ -24,9 +26,9 @@ public class FlashcardController {
     }
 
     @GetMapping
-    public ResponseEntity<List<FlashcardResponse>> getAll(){
-        List<FlashcardResponse> flashcards=flashcardService.getAll();
-        return ResponseEntity.ok(flashcards);
+    public ResponseEntity<Page<FlashcardResponse>> getAll(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(flashcardService.getAll(pageable));
     }
 
     @GetMapping("/{id}")
@@ -35,10 +37,11 @@ public class FlashcardController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("difficulty/{difficulty}")
-    public ResponseEntity<List<FlashcardResponse>> findByDifficulty(Integer difficulty){
-        List<FlashcardResponse> flashcards=flashcardService.findByDifficulty(difficulty);
-        return ResponseEntity.ok(flashcards);
+    @GetMapping("/difficulty/{difficulty}")
+    public ResponseEntity<Page<FlashcardResponse>> findByDifficulty(
+            @PathVariable Integer difficulty,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(flashcardService.findByDifficulty(difficulty, pageable));
     }
 
     @DeleteMapping("/{id}")

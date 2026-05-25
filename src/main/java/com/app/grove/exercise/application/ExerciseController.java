@@ -5,11 +5,13 @@ import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/exercises")
@@ -24,9 +26,9 @@ public class ExerciseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ExerciseResponse>> getAll(){
-        List<ExerciseResponse> exercises=exerciseService.getAll();
-        return ResponseEntity.ok(exercises);
+    public ResponseEntity<Page<ExerciseResponse>> getAll(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(exerciseService.getAll(pageable));
     }
 
     @GetMapping("/{id}")
@@ -36,27 +38,31 @@ public class ExerciseController {
     }
 
     @GetMapping("/type/{type}")
-    public ResponseEntity<List<ExerciseResponse>> findByType(String type){
-        List<ExerciseResponse> exercises=exerciseService.findByType(type);
-        return ResponseEntity.ok(exercises);
+    public ResponseEntity<Page<ExerciseResponse>> findByType(
+            @PathVariable String type,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(exerciseService.findByType(type, pageable));
     }
 
     @GetMapping("/difficulty/{difficulty}")
-    public ResponseEntity<List<ExerciseResponse>> getByDifficulty(@PathVariable Integer difficulty){
-        List<ExerciseResponse> exercises=exerciseService.findByDifficulty(difficulty);
-        return ResponseEntity.ok(exercises);
+    public ResponseEntity<Page<ExerciseResponse>> getByDifficulty(
+            @PathVariable Integer difficulty,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(exerciseService.findByDifficulty(difficulty, pageable));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<ExerciseResponse>> searchByQuestion(@RequestParam String keyword) {
-        List<ExerciseResponse> exercises=exerciseService.findByQuestionContaining(keyword);
-        return ResponseEntity.ok(exercises);
+    public ResponseEntity<Page<ExerciseResponse>> searchByQuestion(
+            @RequestParam String keyword,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(exerciseService.findByQuestionContaining(keyword, pageable));
     }
 
     @GetMapping("/userId/{userId}")
-    public ResponseEntity<List<ExerciseResponse>> getByUserId(@PathVariable String userId){
-        List<ExerciseResponse> exercises=exerciseService.findExerciseByUserId(userId);
-        return ResponseEntity.ok(exercises);
+    public ResponseEntity<Page<ExerciseResponse>> getByUserId(
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(exerciseService.findExerciseByUserId(userId, pageable));
     }
 
     @DeleteMapping("/{id}")

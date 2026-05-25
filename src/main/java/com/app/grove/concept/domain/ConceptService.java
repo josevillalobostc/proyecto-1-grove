@@ -8,7 +8,6 @@ import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
 import com.app.grove.user.domain.User;
-import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import jakarta.transaction.Transactional;
@@ -17,6 +16,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,6 @@ import org.springframework.stereotype.Service;
 public class ConceptService {
 
     private final ConceptRepository conceptRepository;
-    private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ModelMapper modelMapper;
@@ -39,7 +39,7 @@ public class ConceptService {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User creator = (User) auth.getPrincipal();
-    
+
         Concept concept = new Concept();
         concept.setCreatedBy(creator);
         concept.setTitle(request.getTitle());
@@ -81,12 +81,8 @@ public class ConceptService {
         return mapToResponse(concept);
     }
 
-    public List<ConceptResponse> getAllConcepts() {
-        return conceptRepository
-            .findAll()
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<ConceptResponse> getAllConcepts(Pageable pageable) {
+        return conceptRepository.findAll(pageable).map(this::mapToResponse);
     }
 
     @Transactional
@@ -167,12 +163,8 @@ public class ConceptService {
         return mapToResponse(concept);
     }
 
-    public List<ConceptResponse> searchByTitle(String keyword) {
-        return conceptRepository
-            .searchByTitleContaining(keyword)
-            .stream()
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+    public Page<ConceptResponse> searchByTitle(String keyword, Pageable pageable) {
+        return conceptRepository.searchByTitleContaining(keyword, pageable).map(this::mapToResponse);
     }
 
     private ConceptResponse mapToResponse(Concept concept) {
