@@ -4,8 +4,11 @@ import com.app.grove.tag.domain.TagService;
 import com.app.grove.tag.dto.TagRequest;
 import com.app.grove.tag.dto.TagResponse;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,15 +43,16 @@ public class TagController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TagResponse>> getAllTags() {
-        return ResponseEntity.ok(tagService.getAllTags());
+    public ResponseEntity<Page<TagResponse>> getAllTags(
+            @PageableDefault(size = 20, sort = "name") Pageable pageable) {
+        return ResponseEntity.ok(tagService.getAllTags(pageable));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<TagResponse>> searchByName(
-        @RequestParam String keyword
-    ) {
-        return ResponseEntity.ok(tagService.searchByName(keyword));
+    public ResponseEntity<Page<TagResponse>> searchByName(
+            @RequestParam String keyword,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(tagService.searchByName(keyword, pageable));
     }
 
     @PutMapping("/{id}")
