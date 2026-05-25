@@ -3,6 +3,8 @@ package com.app.grove.exercise.application;
 import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.exercise.domain.ExerciseService;
 import com.app.grove.exercise.dto.ExerciseRequest;
+import com.app.grove.exercise.dto.ExerciseResponse;
+
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,44 +18,44 @@ public class ExerciseController {
     ExerciseService exerciseService;
 
     @PostMapping
-    public ResponseEntity<Exercise> create(@Valid @RequestBody ExerciseRequest request) {
-        Exercise response = exerciseService.create(request);
+    public ResponseEntity<ExerciseResponse> create(@Valid @RequestBody ExerciseRequest request) {
+        ExerciseResponse response = exerciseService.create(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping
-    public ResponseEntity<List<Exercise>> getAll(){
-        List<Exercise> exercises=exerciseService.getAll();
+    public ResponseEntity<List<ExerciseResponse>> getAll(){
+        List<ExerciseResponse> exercises=exerciseService.getAll();
         return ResponseEntity.ok(exercises);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Exercise> getById(@PathVariable String id) {
-        Exercise response = exerciseService.findById(id);
+    public ResponseEntity<ExerciseResponse> getById(@PathVariable String id) {
+        ExerciseResponse response = exerciseService.findById(id);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/type/{type}")
-    public ResponseEntity<List<Exercise>> findByType(String type){
-        List<Exercise> exercises=exerciseService.findByType(type);
+    public ResponseEntity<List<ExerciseResponse>> findByType(String type){
+        List<ExerciseResponse> exercises=exerciseService.findByType(type);
         return ResponseEntity.ok(exercises);
     }
 
     @GetMapping("/difficulty/{difficulty}")
-    public ResponseEntity<List<Exercise>> getByDifficulty(@PathVariable Integer difficulty){
-        List<Exercise> exercises=exerciseService.findByDifficulty(difficulty);
+    public ResponseEntity<List<ExerciseResponse>> getByDifficulty(@PathVariable Integer difficulty){
+        List<ExerciseResponse> exercises=exerciseService.findByDifficulty(difficulty);
         return ResponseEntity.ok(exercises);
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Exercise>> searchByQuestion(@RequestParam String keyword) {
-        List<Exercise> exercises=exerciseService.findByQuestionContaining(keyword);
+    public ResponseEntity<List<ExerciseResponse>> searchByQuestion(@RequestParam String keyword) {
+        List<ExerciseResponse> exercises=exerciseService.findByQuestionContaining(keyword);
         return ResponseEntity.ok(exercises);
     }
 
     @GetMapping("/userId/{userId}")
-    public ResponseEntity<List<Exercise>> getByUserId(@PathVariable String userId){
-        List<Exercise> exercises=exerciseService.findExerciseByUserId(userId);
+    public ResponseEntity<List<ExerciseResponse>> getByUserId(@PathVariable String userId){
+        List<ExerciseResponse> exercises=exerciseService.findExerciseByUserId(userId);
         return ResponseEntity.ok(exercises);
     }
 
