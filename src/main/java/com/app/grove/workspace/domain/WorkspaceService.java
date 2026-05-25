@@ -1,6 +1,7 @@
 package com.app.grove.workspace.domain;
 
 import com.app.grove.concept.domain.Concept;
+import com.app.grove.exceptions.AlreadyMemberException;
 import com.app.grove.exceptions.ForbiddenException;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.Role;
@@ -108,13 +109,15 @@ public class WorkspaceService {
         }
 
         User user = userRepository
-            .findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
+                .findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + userId));
 
-        if (!workspace.getMembers().contains(user)) {
-            workspace.getMembers().add(user);
-            workspace = workspaceRepository.save(workspace);
+        if (workspace.getMembers().contains(user)) {
+            throw new AlreadyMemberException("El usuario " + user.getUsername() + " ya es miembro del workspace.");
         }
+
+        workspace.getMembers().add(user);
+        workspace = workspaceRepository.save(workspace);
 
         return mapToResponse(workspace);
     }
