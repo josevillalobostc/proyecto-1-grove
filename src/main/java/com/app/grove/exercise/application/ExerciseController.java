@@ -1,6 +1,5 @@
 package com.app.grove.exercise.application;
 
-import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.exercise.domain.ExerciseService;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
@@ -13,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/exercises")
+@RequestMapping("/api/v1/exercises")
 public class ExerciseController {
     ExerciseService exerciseService;
 

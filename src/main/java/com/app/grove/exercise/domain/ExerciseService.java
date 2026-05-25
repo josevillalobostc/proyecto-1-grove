@@ -5,7 +5,6 @@ import com.app.grove.exercise.infrastructure.ExerciseRepository;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
 
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
 import org.modelmapper.ModelMapper;
