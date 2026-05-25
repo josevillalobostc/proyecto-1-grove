@@ -2,7 +2,7 @@ package com.app.grove.exercise.application;
 
 import com.app.grove.exercise.domain.Exercise;
 import com.app.grove.exercise.domain.ExerciseService;
-import com.app.grove.flashcard.dto.ExerciseRequest;
+import com.app.grove.exercise.dto.ExerciseRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
