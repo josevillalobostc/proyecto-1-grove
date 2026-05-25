@@ -1,0 +1,519 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+		"name": "Grove API",
+		"description": "Colección completa para probar los endpoints de la plataforma educativa Grove (Spring Boot + Neo4j).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Auth",
+			"item": [
+				{
+					"name": "Registrar Usuario",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"estudiante1\",\n  \"email\": \"estudiante1@utec.edu.pe\",\n  \"password\": \"secreto123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"jwt_token\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin_grove\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Users",
+			"item": [
+				{
+					"name": "Obtener mi perfil",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Workspaces",
+			"item": [
+				{
+					"name": "Crear Workspace",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Mi Primer Workspace\",\n  \"description\": \"Workspace para estudiar DBP\",\n  \"isPublic\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/workspaces",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"workspaces"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Obtener Todos (Paginado)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/workspaces?page=0&size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"workspaces"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Agregar Miembro",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/members/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"workspaces",
+								"{{workspace_id}}",
+								"members",
+								"{{user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Concepts",
+			"item": [
+				{
+					"name": "Crear Concepto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Introducción a Neo4j\",\n  \"content\": \"Neo4j es una base de datos orientada a grafos...\",\n  \"workspaceId\": \"{{workspace_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/concepts",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"concepts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar por Título",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/concepts/search?keyword=neo4j",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"concepts",
+								"search"
+							],
+							"query": [
+								{
+									"key": "keyword",
+									"value": "neo4j"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "5. Comments",
+			"item": [
+				{
+					"name": "Comentar en Concepto",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"text\": \"¡Excelente explicación!\",\n  \"authorId\": \"{{my_user_id}}\",\n  \"conceptId\": \"{{concept_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/comments",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Ver Comentarios de Concepto",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/comments/concept/{{concept_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"comments",
+								"concept",
+								"{{concept_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "6. Flashcards",
+			"item": [
+				{
+					"name": "Crear Flashcard",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"front\": \"¿Qué es un Nodo en Neo4j?\",\n  \"back\": \"La unidad fundamental de datos que representa entidades.\",\n  \"hint\": \"Piensa en filas de SQL\",\n  \"difficulty\": 1,\n  \"conceptIds\": [\"{{concept_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/flashcards",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"flashcards"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "7. Exercises",
+			"item": [
+				{
+					"name": "Crear Ejercicio",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"question\": \"¿Neo4j usa SQL?\",\n  \"answer\": \"Falso\",\n  \"explanation\": \"Neo4j utiliza el lenguaje Cypher.\",\n  \"type\": \"true_false\",\n  \"options\": [\"Verdadero\", \"Falso\"],\n  \"difficulty\": 1,\n  \"userId\": \"{{my_user_id}}\",\n  \"conceptIds\": [\"{{concept_id}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/exercises",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"exercises"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "8. Tags",
+			"item": [
+				{
+					"name": "Crear Tag",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Base de Datos\",\n  \"description\": \"Conceptos relacionados a BD\",\n  \"color\": \"#FF5733\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/tags",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"tags"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "9. Notifications",
+			"item": [
+				{
+					"name": "Mis Notificaciones",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/user/{{my_user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"user",
+								"{{my_user_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "workspace_id",
+			"value": "REEMPLAZAR_POR_ID_REAL",
+			"type": "string"
+		},
+		{
+			"key": "concept_id",
+			"value": "REEMPLAZAR_POR_ID_REAL",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "REEMPLAZAR_POR_ID_REAL",
+			"type": "string"
+		},
+		{
+			"key": "my_user_id",
+			"value": "REEMPLAZAR_POR_ID_REAL",
+			"type": "string"
+		}
+	]
+}
