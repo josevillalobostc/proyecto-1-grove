@@ -9,6 +9,6 @@ import java.util.List;
 
 @Repository
 public interface FlashcardRepository extends Neo4jRepository<Flashcard,String> {
-    List<Exercise> findByDifficulty(Integer difficulty);
+    List<Flashcard> findByDifficulty(Integer difficulty);
 
 }
