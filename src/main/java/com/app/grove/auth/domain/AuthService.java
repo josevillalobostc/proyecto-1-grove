@@ -3,6 +3,7 @@ package com.app.grove.auth.domain;
 import java.time.LocalDateTime;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.app.grove.auth.dto.SignInRequest;
 import com.app.grove.auth.dto.SignUpRequest;
 import com.app.grove.auth.dto.TokenResponse;
+import com.app.grove.events.WelcomeEmailEvent;
 import com.app.grove.exceptions.UserAlreadyExistsException;
 import com.app.grove.exceptions.UsernameNotFoundException;
 import com.app.grove.user.domain.Role;
@@ -29,6 +31,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public UserResponse signUp(SignUpRequest request){
@@ -50,7 +53,14 @@ public class AuthService {
         account.setRole(Role.ROLE_USER);
         account.setCreatedAt(LocalDateTime.now());
         User savedUser = userRepository.save(account);
-        return modelMapper.map(savedUser,UserResponse.class);
+
+        eventPublisher.publishEvent(new WelcomeEmailEvent(
+                savedUser.getEmail(),
+                savedUser.getUsername(),
+                "Grove"
+        ));
+
+        return modelMapper.map(savedUser, UserResponse.class);
     }
 
     public TokenResponse signIn(SignInRequest request){

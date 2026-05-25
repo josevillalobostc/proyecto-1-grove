@@ -3,7 +3,6 @@ package com.app.grove.workspace.domain;
 import com.app.grove.concept.domain.Concept;
 import com.app.grove.exceptions.AlreadyMemberException;
 import com.app.grove.exceptions.ForbiddenException;
-import com.app.grove.events.WelcomeEmailEvent;
 import com.app.grove.events.WorkspaceInvitationEvent;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.user.domain.Role;
@@ -123,18 +122,10 @@ public class WorkspaceService {
         workspace.getMembers().add(user);
         workspace = workspaceRepository.save(workspace);
 
-        User inviter = currentUser;
-        String invitationLink = "http://localhost:8080/api/v1/workspaces/" + workspaceId + "/join?user=" + user.getId();
         eventPublisher.publishEvent(new WorkspaceInvitationEvent(
                 user.getEmail(),
                 workspace.getName(),
-                inviter.getUsername(),
-                invitationLink
-        ));
-        eventPublisher.publishEvent(new WelcomeEmailEvent(
-                user.getEmail(),
-                user.getUsername(),
-                workspace.getName()
+                currentUser.getUsername()
         ));
 
         return mapToResponse(workspace);

@@ -18,12 +18,11 @@ public class EmailEventListener {
     @Async
     @EventListener
     public void handleWorkspaceInvitation(WorkspaceInvitationEvent event) {
-        String subject = "Invitación al workspace: " + event.getWorkspaceName();
+        String subject = "Has sido añadido al workspace: " + event.getWorkspaceName();
         String body = String.format(
-                "Hola,\n\n%s te ha invitado a unirte al workspace '%s'.\n\nPara aceptar, haz clic en el siguiente enlace:\n%s\n\nSaludos.",
+                "Hola,\n\n%s te ha añadido al workspace '%s'.\n\nYa puedes colaborar y aprender dentro de Grove.\n\nSaludos.",
                 event.getInvitedByUserName(),
-                event.getWorkspaceName(),
-                event.getInvitationLink()
+                event.getWorkspaceName()
         );
         emailService.sendSimpleEmail(event.getInvitedUserEmail(), subject, body);
     }
