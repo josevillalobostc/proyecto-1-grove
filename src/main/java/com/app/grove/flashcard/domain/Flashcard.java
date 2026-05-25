@@ -1,5 +1,6 @@
 package com.app.grove.flashcard.domain;
 
+import com.app.grove.concept.domain.Concept;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
