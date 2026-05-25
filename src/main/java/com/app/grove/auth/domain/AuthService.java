@@ -1,5 +1,7 @@
 package com.app.grove.auth.domain;
 
+import java.time.LocalDateTime;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -15,6 +17,7 @@ import com.app.grove.user.domain.User;
 import com.app.grove.user.dto.UserResponse;
 import com.app.grove.user.infrastructure.UserRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -26,6 +29,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final ModelMapper modelMapper;
 
+    @Transactional
     public UserResponse signUp(SignUpRequest request){
         String username = request.getUsername();
         String email = request.getEmail();
@@ -43,6 +47,7 @@ public class AuthService {
         account.setEmail((request.getEmail()));
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         account.setRole(Role.ROLE_USER);
+        account.setCreatedAt(LocalDateTime.now());
         User savedUser = userRepository.save(account);
         return modelMapper.map(savedUser,UserResponse.class);
     }
