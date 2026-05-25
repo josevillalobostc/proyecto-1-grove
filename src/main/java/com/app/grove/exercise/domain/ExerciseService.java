@@ -8,11 +8,11 @@ import com.app.grove.exercise.dto.ExerciseResponse;
 import lombok.RequiredArgsConstructor;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +27,8 @@ public class ExerciseService {
         return modelMapper.map(saved,ExerciseResponse.class);
     }
 
-    public List<ExerciseResponse> getAll(){
-        return exerciseRepository.findAll().stream()
-                .map(exercise -> modelMapper.map(exercise, ExerciseResponse.class))
-                .collect(Collectors.toList());
+    public Page<ExerciseResponse> getAll(Pageable pageable) {
+        return exerciseRepository.findAll(pageable).map(ex -> modelMapper.map(ex, ExerciseResponse.class));
     }
 
     public ExerciseResponse findById(String id){
@@ -39,32 +37,20 @@ public class ExerciseService {
         return modelMapper.map(exercise,ExerciseResponse.class);
     }
 
-    public List<ExerciseResponse> findByType(String type){
-        List<Exercise> exercises=exerciseRepository.findByType(type);
-        return exercises.stream()
-            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
-            .collect(Collectors.toList());
+    public Page<ExerciseResponse> findByType(String type, Pageable pageable) {
+        return exerciseRepository.findByType(type, pageable).map(ex -> modelMapper.map(ex, ExerciseResponse.class));
     }
 
-    public List<ExerciseResponse> findByDifficulty(Integer difficulty){
-        List<Exercise> exercises=exerciseRepository.findByDifficulty(difficulty);
-        return exercises.stream()
-            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
-            .collect(Collectors.toList());
+    public Page<ExerciseResponse> findByDifficulty(Integer difficulty, Pageable pageable) {
+        return exerciseRepository.findByDifficulty(difficulty, pageable).map(ex -> modelMapper.map(ex, ExerciseResponse.class));
     }
 
-    public List<ExerciseResponse> findByQuestionContaining(String keyword){
-        List<Exercise> exercises=exerciseRepository.findByQuestionContaining(keyword);
-        return exercises.stream()
-            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
-            .collect(Collectors.toList());
+    public Page<ExerciseResponse> findByQuestionContaining(String keyword, Pageable pageable) {
+        return exerciseRepository.findByQuestionContaining(keyword, pageable).map(ex -> modelMapper.map(ex, ExerciseResponse.class));
     }
 
-    public List<ExerciseResponse> findExerciseByUserId(String userId){
-        List<Exercise> exercises=exerciseRepository.findExerciseByUserId(userId);
-        return exercises.stream()
-            .map(exercise -> modelMapper.map(exercise,ExerciseResponse.class))
-            .collect(Collectors.toList());
+    public Page<ExerciseResponse> findExerciseByUserId(String userId, Pageable pageable) {
+        return exerciseRepository.findExerciseByUserId(userId, pageable).map(ex -> modelMapper.map(ex, ExerciseResponse.class));
     }
 
     public void deleteById(String id){
