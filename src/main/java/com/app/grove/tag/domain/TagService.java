@@ -1,5 +1,6 @@
 package com.app.grove.tag.domain;
 
+import com.app.grove.exceptions.DuplicateResourceException;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.dto.TagRequest;
 import com.app.grove.tag.dto.TagResponse;
@@ -20,6 +21,9 @@ public class TagService {
 
     @Transactional
     public TagResponse createTag(TagRequest request) {
+        if (tagRepository.findByName(request.getName()) != null) {
+            throw new DuplicateResourceException("Ya existe una etiqueta con el nombre " + request.getName());
+        }
         Tag tag = new Tag();
         tag.setName(request.getName());
         tag.setDescription(request.getDescription());
@@ -45,9 +49,15 @@ public class TagService {
     public TagResponse updateTag(String id, TagRequest request) {
         Tag tag = tagRepository
             .findById(id)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Tag no encontrado: " + id)
-            );
+            .orElseThrow(() -> new ResourceNotFoundException("Tag no encontrado: " + id));
+
+        if (request.getName() != null && !request.getName().equals(tag.getName())) {
+            Tag existing = tagRepository.findByName(request.getName());
+            if (existing != null && !existing.getId().equals(id)) {
+                throw new DuplicateResourceException("Ya existe una etiqueta con el nombre " + request.getName());
+            }
+        }
+
         tag.setName(request.getName());
         tag.setDescription(request.getDescription());
         tag.setColor(request.getColor());

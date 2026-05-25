@@ -23,4 +23,7 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
             "ORDER BY size((start)-[:PREREQUISITE*]->(target))"
     )
     List<Concept> findAllPrerequisites(@Param("conceptId") String conceptId);
+
+    @Query("RETURN EXISTS((:Concept {id: $startId})-[:PREREQUISITE*]->(:Concept {id: $endId}))")
+    boolean existsPathBetween(@Param("startId") String startId, @Param("endId") String endId);
 }

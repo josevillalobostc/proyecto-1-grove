@@ -1,8 +1,10 @@
 package com.app.grove.exercise.domain;
 
-import com.app.grove.concept.domain.Concept;
-import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.exceptions.ForbiddenException;
 import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.exercise.infrastructure.ExerciseRepository;
+import com.app.grove.user.domain.Role;
+import com.app.grove.user.domain.User;
 import com.app.grove.exercise.dto.ExerciseRequest;
 import com.app.grove.exercise.dto.ExerciseResponse;
 import com.app.grove.exercise.infrastructure.ExerciseRepository;
@@ -12,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -56,6 +60,18 @@ public class ExerciseService {
     }
 
     public void deleteById(String id){
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+
+        Exercise exercise = exerciseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ejercicio no encontrado"));
+
+        if (exercise.getUser() != null && !exercise.getUser().getId().equals(currentUser.getId())
+                && currentUser.getRole() != Role.ROLE_ADMIN) {
+            throw new ForbiddenException("No puedes eliminar un ejercicio que no te pertenece.");
+        }
+
         if(!exerciseRepository.existsById(id)){
             throw new ResourceNotFoundException("No se puede eliminar: El ejercicio no existe"); }
         exerciseRepository.deleteById(id);

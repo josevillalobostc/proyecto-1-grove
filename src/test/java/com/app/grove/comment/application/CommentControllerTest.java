@@ -58,7 +58,7 @@ class CommentControllerTest {
 
         when(commentService.createComment(any(CommentRequestDTO.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/comments")
+        mockMvc.perform(post("/api/v1/comments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -72,7 +72,7 @@ class CommentControllerTest {
             .when(commentService)
             .deleteComment("missing");
 
-        mockMvc.perform(delete("/api/comments/missing"))
+        mockMvc.perform(delete("/api/v1/comments/missing"))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.detail").value("Comentario no encontrado"));
     }
