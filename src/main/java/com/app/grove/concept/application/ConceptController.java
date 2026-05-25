@@ -5,8 +5,11 @@ import com.app.grove.concept.dto.ConceptRequest;
 import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.dto.ConceptUpdateRequest;
 import jakarta.validation.Valid;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,15 +43,16 @@ public class ConceptController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConceptResponse>> getAllConcepts() {
-        return ResponseEntity.ok(conceptService.getAllConcepts());
+    public ResponseEntity<Page<ConceptResponse>> getAllConcepts(
+            @PageableDefault(size = 20, sort = "title") Pageable pageable) {
+        return ResponseEntity.ok(conceptService.getAllConcepts(pageable));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<ConceptResponse>> searchByTitle(
-        @RequestParam String keyword
-    ) {
-        return ResponseEntity.ok(conceptService.searchByTitle(keyword));
+    public ResponseEntity<Page<ConceptResponse>> searchByTitle(
+            @RequestParam String keyword,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(conceptService.searchByTitle(keyword, pageable));
     }
 
     @PutMapping("/{id}")
