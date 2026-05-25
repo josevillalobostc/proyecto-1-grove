@@ -15,5 +15,5 @@ public interface WorkspaceRepository extends Neo4jRepository<Workspace, String> 
 
     public List<Workspace> findByIsPublicTrue();
 
-    public List<User> findMembersByWorkspaceId(String id);
+    public List<User> findMembersById(String id);
 }
