@@ -7,6 +7,8 @@ import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.tag.domain.Tag;
 import com.app.grove.tag.infrastructure.TagRepository;
+import com.app.grove.user.domain.User;
+import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import jakarta.transaction.Transactional;
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,6 +26,7 @@ import org.springframework.stereotype.Service;
 public class ConceptService {
 
     private final ConceptRepository conceptRepository;
+    private final UserRepository userRepository;
     private final TagRepository tagRepository;
     private final WorkspaceRepository workspaceRepository;
     private final ModelMapper modelMapper;
@@ -32,7 +37,11 @@ public class ConceptService {
             .findById(request.getWorkspaceId())
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + request.getWorkspaceId()));
 
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User creator = (User) auth.getPrincipal();
+    
         Concept concept = new Concept();
+        concept.setCreatedBy(creator);
         concept.setTitle(request.getTitle());
         concept.setContent(request.getContent());
         concept.setCreatedAt(LocalDateTime.now());
@@ -176,6 +185,11 @@ public class ConceptService {
         response.setForkedFromId(
             concept.getForkedFrom() != null
                 ? concept.getForkedFrom().getId()
+                : null
+        );
+        response.setCreatedById(
+            concept.getCreatedBy() != null
+                ? concept.getCreatedBy().getId()
                 : null
         );
         if (concept.getPrerequisites() != null) {
