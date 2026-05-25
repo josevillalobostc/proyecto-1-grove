@@ -5,11 +5,13 @@ import com.app.grove.notification.dto.NotificationRequestDTO;
 import com.app.grove.notification.dto.NotificationResponseDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
@@ -24,8 +26,10 @@ public class NotificationController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<NotificationResponseDTO>> getByUser(@PathVariable String userId) {
-        return ResponseEntity.ok(notificationService.getNotificationsByUser(userId));
+    public ResponseEntity<Page<NotificationResponseDTO>> getByUser(
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(notificationService.getNotificationsByUser(userId, pageable));
     }
 
     @PutMapping("/{id}/read")
