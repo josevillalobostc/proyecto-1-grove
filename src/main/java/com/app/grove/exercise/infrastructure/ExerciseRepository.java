@@ -14,7 +14,7 @@ public interface ExerciseRepository extends Neo4jRepository<Exercise,String> {
     List<Exercise> findByDifficulty(Integer difficulty);
     List<Exercise> findByQuestionContaining(String keyword);
 
-    @Query("MATCH(e:Exercise)-[:BELONGS_TO]->(u:User) WHERE u.id=$user.Id RETURN e")
+    @Query("MATCH(e:Exercise)-[:BELONGS_TO]->(u:User) WHERE u.id=$userId RETURN e")
     List<Exercise> findExerciseByUserId(String userId);
 
 }
