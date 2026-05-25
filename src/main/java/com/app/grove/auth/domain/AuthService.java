@@ -12,6 +12,7 @@ import com.app.grove.auth.dto.SignInRequest;
 import com.app.grove.auth.dto.SignUpRequest;
 import com.app.grove.auth.dto.TokenResponse;
 import com.app.grove.exceptions.UserAlreadyExistsException;
+import com.app.grove.exceptions.UsernameNotFoundException;
 import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.dto.UserResponse;
@@ -34,14 +35,14 @@ public class AuthService {
         String username = request.getUsername();
         String email = request.getEmail();
         if(userRepository.existsByUsername(username)){
-            throw new UserAlreadyExistsException("Ya existe un usuario con dicho username");            
+            throw new UserAlreadyExistsException("Ya existe un usuario con dicho username");
         }
-        
+
         if(userRepository.existsByEmail(email)){
-            throw new UserAlreadyExistsException("Ya existe un usuario con dicho email");            
+            throw new UserAlreadyExistsException("Ya existe un usuario con dicho email");
         }
-        
-        
+
+
         User account = new User();
         account.setUsername(request.getUsername());
         account.setEmail((request.getEmail()));
@@ -56,16 +57,14 @@ public class AuthService {
         String username = request.getUsername();
         String password = request.getPassword();
 
-        
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(username, password)
 
         );
-        User account = userRepository.findByUsername(username).orElseThrow();
+
+        User account = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
         String token = jwtService.generateToken(account);
         TokenResponse response = new TokenResponse(token);
         return response;
-        
     }
-    
 }
