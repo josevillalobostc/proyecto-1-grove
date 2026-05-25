@@ -3,7 +3,12 @@ package com.app.grove.exercise.domain;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.exercise.infrastructure.ExerciseRepository;
 import com.app.grove.exercise.dto.ExerciseRequest;
+import com.app.grove.exercise.dto.ExerciseResponse;
+
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -11,19 +16,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ExerciseService {
     private final ExerciseRepository exerciseRepository;
+    private final ModelMapper modelMapper;
 
-    public Exercise create(ExerciseRequest request){
-        Exercise exercise=mapToEntity(request);
+    public ExerciseResponse create(ExerciseRequest request){
+        Exercise exercise= modelMapper.map(request,Exercise.class);
         exercise.setCreatedAt(LocalDateTime.now());
-        return exerciseRepository.save(exercise);
+        Exercise saved = exerciseRepository.save(exercise);
+        return modelMapper.map(saved,ExerciseResponse.class);
     }
 
-    public List<Exercise> getAll(){
+    public List<ExerciseResponse> getAll(){
         return exerciseRepository.findAll().stream()
-                .map(this::mapToResponse)
+                .map(exercise -> modelMapper.map(this,ExerciseResponse.class))
                 .collect(Collectors.toList());
     }
 
