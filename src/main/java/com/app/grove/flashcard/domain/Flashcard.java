@@ -1,5 +1,6 @@
 package com.app.grove.flashcard.domain;
 
+import com.app.grove.concept.domain.Concept;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Node("Flashcard")
 @AllArgsConstructor
