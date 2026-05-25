@@ -57,7 +57,7 @@ class NotificationControllerTest {
 
         when(notificationService.createNotification(any(NotificationRequestDTO.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/notifications")
+        mockMvc.perform(post("/api/v1/notifications")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
@@ -73,7 +73,7 @@ class NotificationControllerTest {
 
         when(notificationService.markAsRead("n1")).thenReturn(response);
 
-        mockMvc.perform(put("/api/notifications/n1/read"))
+        mockMvc.perform(put("/api/v1/notifications/n1/read"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.read").value(true));
     }

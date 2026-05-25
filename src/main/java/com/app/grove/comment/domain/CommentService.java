@@ -35,7 +35,8 @@ public class CommentService {
         Concept concept = conceptRepository.findById(request.getConceptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
 
-        Comment comment = modelMapper.map(request, Comment.class);
+        Comment comment = new Comment();
+        comment.setText(request.getText());
         comment.setCreatedAt(LocalDateTime.now());
         comment.setAuthor(author);
         comment.setConcept(concept);
