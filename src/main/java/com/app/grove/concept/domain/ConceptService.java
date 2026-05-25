@@ -140,7 +140,6 @@ public class ConceptService {
         Concept concept = conceptRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado: " + id));
-        conceptRepository.delete(concept);
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
@@ -149,6 +148,7 @@ public class ConceptService {
                 && currentUser.getRole() != Role.ROLE_ADMIN) {
             throw new ForbiddenException("Solo el creador del concepto o un administrador pueden eliminarlo.");
         }
+        conceptRepository.delete(concept);
     }
 
     @Transactional
