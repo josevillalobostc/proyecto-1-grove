@@ -60,7 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**", "/error").permitAll()
                         .requestMatchers("/api/v1/comment/**","/api/v1/concepts/**",
-                        "/api/v1/exercises/**","/api/vi/flashcards/**",
+                        "/api/v1/exercises/**","/api/v1/flashcards/**",
                         "/api/v1/notifications/**","/api/v1/users/**")
                         .authenticated()
                 )
