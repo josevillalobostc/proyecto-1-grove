@@ -11,5 +11,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface NotificationRepository extends Neo4jRepository<Notification, String> {
-    Page<Notification> findByUser(User user, Pageable pageable);
+    Page<Notification> findByUser_Id(String userId, Pageable pageable);
 }

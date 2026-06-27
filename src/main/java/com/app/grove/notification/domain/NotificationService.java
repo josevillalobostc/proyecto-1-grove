@@ -37,7 +37,7 @@ public class NotificationService {
     public Page<NotificationResponseDTO> getNotificationsByUser(String userId, Pageable pageable) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-        return notificationRepository.findByUser(user, pageable).map(this::convertToResponse);
+        return notificationRepository.findByUser_Id(userId, pageable).map(this::convertToResponse);
     }
 
     @Transactional

@@ -3,7 +3,9 @@ package com.app.grove.concept.domain;
 import com.app.grove.concept.dto.ConceptRequest;
 import com.app.grove.concept.dto.ConceptResponse;
 import com.app.grove.concept.infrastructure.ConceptRepository;
+import com.app.grove.concept.infrastructure.UserConceptProgressRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
+import com.app.grove.flashcard.infrastructure.FlashcardRepository;
 import com.app.grove.tag.infrastructure.TagRepository;
 import com.app.grove.user.domain.User;
 import com.app.grove.workspace.domain.Workspace;
@@ -41,6 +43,12 @@ class ConceptServiceTest {
     private WorkspaceRepository workspaceRepository;
 
     @Mock
+    private FlashcardRepository flashcardRepository;
+
+    @Mock
+    private UserConceptProgressRepository progressRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
@@ -58,6 +66,8 @@ class ConceptServiceTest {
             conceptRepository,
             tagRepository,
             workspaceRepository,
+            flashcardRepository,
+            progressRepository,
             new ModelMapper(),
             eventPublisher
         );

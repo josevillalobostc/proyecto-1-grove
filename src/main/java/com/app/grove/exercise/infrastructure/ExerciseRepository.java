@@ -16,8 +16,8 @@ public interface ExerciseRepository extends Neo4jRepository<Exercise, String> {
     Page<Exercise> findByQuestionContaining(String keyword, Pageable pageable);
 
     @Query(
-        value = "MATCH(e:Exercise)-[:BELONGS_TO]->(u:User) WHERE u.id = $userId RETURN e",
-        countQuery = "MATCH(e:Exercise)-[:BELONGS_TO]->(u:User) WHERE u.id = $userId RETURN count(e)"
+        value = "MATCH(e:Exercise)-[:BELONGS_TO]->(u:user) WHERE u.id = $userId RETURN e",
+        countQuery = "MATCH(e:Exercise)-[:BELONGS_TO]->(u:user) WHERE u.id = $userId RETURN count(e)"
     )
     Page<Exercise> findExerciseByUserId(@Param("userId") String userId, Pageable pageable);
 }

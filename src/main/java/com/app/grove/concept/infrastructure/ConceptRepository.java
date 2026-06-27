@@ -102,9 +102,11 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
     // ─── Prerequisites ────────────────────────────────────────────────────────
 
     @Query(
-        "MATCH (start:Concept)-[:PREREQUISITE*]->(target:Concept) " +
-            "WHERE target.id = $conceptId RETURN DISTINCT start " +
-            "ORDER BY size((start)-[:PREREQUISITE*]->(target))"
+        "MATCH path = (start:Concept)-[:PREREQUISITE*]->(target:Concept) " +
+            "WHERE target.id = $conceptId " +
+            "WITH start, min(length(path)) AS pathLength " +
+            "RETURN start " +
+            "ORDER BY pathLength"
     )
     List<Concept> findAllPrerequisites(@Param("conceptId") String conceptId);
 

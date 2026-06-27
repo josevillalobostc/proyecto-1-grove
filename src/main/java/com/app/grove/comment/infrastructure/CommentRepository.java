@@ -11,6 +11,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CommentRepository extends Neo4jRepository<Comment, String> {
 
-    Page<Comment> findByConcept(Concept concept, Pageable pageable);
-    Page<Comment> findByConceptAndParentCommentIsNull(Concept concept, Pageable pageable);
+    Page<Comment> findByConcept_Id(String conceptId, Pageable pageable);
+    Page<Comment> findByConcept_IdAndParentCommentIsNull(String conceptId, Pageable pageable);
 }

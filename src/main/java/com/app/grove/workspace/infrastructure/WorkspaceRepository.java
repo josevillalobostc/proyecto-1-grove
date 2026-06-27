@@ -14,13 +14,13 @@ public interface WorkspaceRepository extends Neo4jRepository<Workspace, String> 
     Workspace findByName(String name);
 
     @Query(
-        value = "MATCH (u:User {id: $userId})-[:MEMBER_OF]->(w:Workspace) RETURN w",
-        countQuery = "MATCH (u:User {id: $userId})-[:MEMBER_OF]->(w:Workspace) RETURN count(w)"
+        value = "MATCH (u:user {id: $userId})-[:MEMBER_OF]->(w:Workspace) RETURN w",
+        countQuery = "MATCH (u:user {id: $userId})-[:MEMBER_OF]->(w:Workspace) RETURN count(w)"
     )
     Page<Workspace> findByMemberId(@Param("userId") String userId, Pageable pageable);
 
     Page<Workspace> findByIsPublicTrue(Pageable pageable);
 
-    @Query("MATCH (u:User)-[:MEMBER_OF]->(w:Workspace {id: $id}) RETURN u")
+    @Query("MATCH (u:user)-[:MEMBER_OF]->(w:Workspace {id: $id}) RETURN u")
     public List<User> findMembersById(String id);
 }

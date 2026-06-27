@@ -2,6 +2,8 @@ package com.app.grove.config;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -37,69 +39,89 @@ public class DataInitializer implements CommandLineRunner{
     @Value("${ADMIN_PASSWORD}")
     private String adminPassword;
 
-
     @Override
     public void run(String... args) throws Exception {
-            Optional<User> existingAdmin = userRepository.findByUsername(adminName);
+        Optional<User> existingAdmin = userRepository.findByUsername(adminName);
 
-            if (existingAdmin.isEmpty()) {
-                User admin = new User();
-                admin.setUsername(adminName);
-                admin.setEmail(adminEmail);
-                admin.setPassword(passwordEncoder.encode(adminPassword));
-                admin.setCreatedAt(LocalDateTime.now());
-                admin.setRole(Role.ROLE_ADMIN);
-                User savedAdmin = userRepository.save(admin);
+        if (existingAdmin.isEmpty()) {
+            User admin = new User();
+            admin.setUsername(adminName);
+            admin.setEmail(adminEmail);
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setCreatedAt(LocalDateTime.now());
+            admin.setRole(Role.ROLE_ADMIN);
+            User savedAdmin = userRepository.save(admin);
 
-                userRepository.save(admin);
-                Workspace publicWorkspace = new Workspace();
-                publicWorkspace.setName("Grove Global Community");
-                publicWorkspace.setDescription("Espacio público donde todos los usuarios pueden ver conceptos base.");
-                publicWorkspace.setPublic(true);
-                publicWorkspace.setCreatedAt(LocalDateTime.now());
-                publicWorkspace.setMembers(new ArrayList<>());
-                publicWorkspace.getMembers().add(savedAdmin);
+            Workspace publicWorkspace = new Workspace();
+            publicWorkspace.setName("Grove Global Community");
+            publicWorkspace.setDescription("Espacio público donde todos los usuarios pueden ver conceptos base.");
+            publicWorkspace.setPublic(true);
+            publicWorkspace.setCreatedAt(LocalDateTime.now());
+            publicWorkspace.setMembers(new ArrayList<>(Arrays.asList(savedAdmin)));
+            Workspace savedWorkspace = workspaceRepository.save(publicWorkspace);
 
-                Workspace savedWorkspace = workspaceRepository.save(publicWorkspace);
+            Concept welcomeConcept = crearConceptoBase("¿Qué es Grove?", "Grove es una plataforma colaborativa basada en grafos de conocimiento para el aprendizaje.", savedWorkspace, savedAdmin);
+            
+            // Conceptos de Matemáticas y Estadística
+            Concept calculoDif = crearConceptoBase("Cálculo Diferencial", "Estudio de las tasas de cambio (derivadas).", savedWorkspace, savedAdmin);
+            Concept calculoInt = crearConceptoBase("Cálculo Integral", "Estudio de las áreas bajo curvas (integrales).", savedWorkspace, savedAdmin);
+            Concept algebraLineal = crearConceptoBase("Álgebra Lineal", "Estudio de vectores, matrices y transformaciones lineales.", savedWorkspace, savedAdmin);
+            Concept probabilidad = crearConceptoBase("Probabilidad", "Medida de la certidumbre de eventos aleatorios.", savedWorkspace, savedAdmin);
+            Concept estadisticaDesc = crearConceptoBase("Estadística Descriptiva", "Resumen y descripción cuantitativa de datos.", savedWorkspace, savedAdmin);
+            Concept estadisticaInf = crearConceptoBase("Estadística Inferencial", "Deducción de propiedades poblacionales a partir de muestras.", savedWorkspace, savedAdmin);
+            Concept cadenasMarkov = crearConceptoBase("Cadenas de Markov", "Modelos estocásticos que dependen solo del estado actual.", savedWorkspace, savedAdmin);
 
-                Concept welcomeConcept = new Concept();
-                welcomeConcept.setTitle("¿Qué es Grove?");
-                welcomeConcept.setContent("Grove es una plataforma colaborativa basada en grafos de conocimiento para el aprendizaje.");
-                welcomeConcept.setCreatedAt(LocalDateTime.now());
-                welcomeConcept.setUpdatedAt(LocalDateTime.now());
-                welcomeConcept.setWorkspace(savedWorkspace);
-                conceptRepository.save(welcomeConcept);
-                crearConceptoBase("Teoría de Grupos", "Estructura algebraica formada por un conjunto y una operación binaria que satisface cierre, asociatividad, elemento neutro e inverso.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Teorema de Lagrange", "En teoría de grupos, establece que el orden de cualquier subgrupo de un grupo finito divide exactamente al orden del grupo original.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Isomorfismos", "Un homomorfismo biyectivo. Si existe un isomorfismo entre dos estructuras, ambas son estructuralmente idénticas.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Teoría de Grafos", "Estudio de las relaciones entre objetos, representadas por vértices (nodos) y aristas (conexiones).", savedWorkspace, savedAdmin);
-                crearConceptoBase("Axiomas del Álgebra de Boole", "Reglas fundamentales como conmutatividad, distributividad, identidad y complementos que rigen la lógica binaria.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Combinatoria", "Rama matemática que estudia la enumeración, combinación y permutación de conjuntos finitos.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Aritmética Modular", "Sistema aritmético para enteros, donde los números se 'envuelven' tras alcanzar cierto valor llamado módulo.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Teoría de Números", "Estudio de las propiedades de los números enteros, fundamental en áreas como la criptografía moderna.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Cálculo Tensorial", "Extensión del álgebra lineal. Un tensor es una matriz multidimensional que describe relaciones lineales entre escalares, vectores u otros tensores.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Árboles (Matemática)", "En teoría de grafos, un árbol es un grafo no dirigido, conectado y acíclico.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Notación Big O", "Medida teórica para clasificar la complejidad temporal o espacial de un algoritmo según el crecimiento de los datos de entrada.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Suffix Trees (Árbol de Sufijos)", "Estructura de datos tipo Trie que contiene todos los sufijos de una cadena dada, permitiendo búsquedas de subcadenas extremadamente rápidas.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Trie (Árbol de Prefijos)", "Estructura de árbol usada para almacenar arrays asociativos o cadenas, muy útil para autocompletado y diccionarios.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Programación Dinámica", "Método de optimización que resuelve problemas complejos dividiéndolos en subproblemas superpuestos más simples y almacenando sus resultados.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Modelado Entidad-Relación", "Técnica de diseño de bases de datos. Incluye manejo de relaciones reflexivas (ej. ventajas de tipos elementales entre sí).", savedWorkspace, savedAdmin);
-                crearConceptoBase("Normalización de BD", "Proceso de organizar los datos en una base de datos relacional para reducir la redundancia y mejorar la integridad de la información.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Bases de Datos Orientadas a Grafos", "Sistemas NoSQL basados en la teoría de grafos, donde los datos se almacenan en nodos y sus conexiones en relaciones (Ej. Neo4j).", savedWorkspace, savedAdmin);
-                crearConceptoBase("Patrones de Diseño", "Soluciones típicas a problemas comunes en el diseño de software. Ejemplos: Singleton, Factory, Observer.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Clean Architecture", "Filosofía de diseño de software que separa las responsabilidades en capas concéntricas, manteniendo el dominio en el centro y aislado de frameworks.", savedWorkspace, savedAdmin);
-                crearConceptoBase("Redes Neuronales Artificiales", "Modelos computacionales inspirados en el cerebro humano, basados en capas de nodos interconectados y funciones de activación.", savedWorkspace, savedAdmin);
-            }
+            // Algoritmos y Optimización
+            Concept complejidad = crearConceptoBase("Análisis de Complejidad", "Evaluación de uso de tiempo y espacio de algoritmos (Notación Big-O).", savedWorkspace, savedAdmin);
+            Concept estDatos = crearConceptoBase("Estructuras de Datos Avanzadas", "Organización eficiente de datos complejos.", savedWorkspace, savedAdmin);
+            Concept teoriaGrafos = crearConceptoBase("Teoría de Grafos", "Modelado de relaciones entre pares de objetos.", savedWorkspace, savedAdmin);
+            Concept progDinamica = crearConceptoBase("Programación Dinámica", "Optimización resolviendo subproblemas superpuestos.", savedWorkspace, savedAdmin);
+            Concept algOptimizacion = crearConceptoBase("Algoritmos de Optimización", "Métodos para hallar mínimos o máximos de funciones.", savedWorkspace, savedAdmin);
+            Concept descensoGradiente = crearConceptoBase("Descenso de Gradiente", "Algoritmo iterativo para minimizar funciones de costo.", savedWorkspace, savedAdmin);
+
+            // Machine Learning y Datos
+            Concept regresionLineal = crearConceptoBase("Regresión Lineal", "Modelo lineal para predecir variables continuas.", savedWorkspace, savedAdmin);
+            Concept regresionLogistica = crearConceptoBase("Regresión Logística", "Modelo para clasificación probabilística binaria.", savedWorkspace, savedAdmin);
+            Concept machineLearning = crearConceptoBase("Machine Learning", "Algoritmos que mejoran su rendimiento con la experiencia.", savedWorkspace, savedAdmin);
+            Concept redesNeuronales = crearConceptoBase("Redes Neuronales", "Modelos computacionales multicapa inspirados en biología.", savedWorkspace, savedAdmin);
+            Concept deepLearning = crearConceptoBase("Deep Learning", "Aprendizaje automático basado en redes neuronales profundas.", savedWorkspace, savedAdmin);
+
+            // Relaciones de Matemáticas y Estadística
+            calculoInt.setPrerequisites(Arrays.asList(calculoDif));
+            estadisticaInf.setPrerequisites(Arrays.asList(probabilidad, estadisticaDesc));
+            cadenasMarkov.setPrerequisites(Arrays.asList(probabilidad, algebraLineal));
+
+            // Relaciones de Algoritmos
+            complejidad.setPrerequisites(Arrays.asList(calculoDif, algebraLineal));
+            teoriaGrafos.setPrerequisites(Arrays.asList(estDatos));
+            progDinamica.setPrerequisites(Arrays.asList(complejidad, estDatos));
+            algOptimizacion.setPrerequisites(Arrays.asList(calculoDif, algebraLineal));
+            descensoGradiente.setPrerequisites(Arrays.asList(algOptimizacion, calculoDif));
+
+            // Relaciones de Machine Learning (Fuertemente interconectados)
+            regresionLineal.setPrerequisites(Arrays.asList(algebraLineal, estadisticaInf, calculoDif));
+            regresionLogistica.setPrerequisites(Arrays.asList(regresionLineal, probabilidad));
+            machineLearning.setPrerequisites(Arrays.asList(estadisticaInf, algebraLineal, algOptimizacion));
+            redesNeuronales.setPrerequisites(Arrays.asList(machineLearning, descensoGradiente, algebraLineal));
+            deepLearning.setPrerequisites(Arrays.asList(redesNeuronales, algebraLineal, calculoDif));
+
+            // Guardar en la Base de Datos
+            conceptRepository.saveAll(Arrays.asList(
+                calculoDif, calculoInt, algebraLineal, probabilidad, estadisticaDesc, estadisticaInf, cadenasMarkov,
+                complejidad, estDatos, teoriaGrafos, progDinamica, algOptimizacion, descensoGradiente,
+                regresionLineal, regresionLogistica, machineLearning, redesNeuronales, deepLearning
+            ));
         }
-    private void crearConceptoBase(String titulo, String contenido, Workspace workspace, User creador) {
-            Concept concept = new Concept();
-            concept.setTitle(titulo);
-            concept.setContent(contenido);
-            concept.setCreatedAt(LocalDateTime.now());
-            concept.setUpdatedAt(LocalDateTime.now());
-            concept.setWorkspace(workspace);
-            concept.setCreatedBy(creador);
-            conceptRepository.save(concept);
-        }
+    }
 
+    private Concept crearConceptoBase(String titulo, String contenido, Workspace workspace, User creador) {
+        Concept concept = new Concept();
+        concept.setTitle(titulo);
+        concept.setContent(contenido);
+        concept.setCreatedAt(LocalDateTime.now());
+        concept.setUpdatedAt(LocalDateTime.now());
+        concept.setWorkspace(workspace);
+        concept.setCreatedBy(creador);
+        return conceptRepository.save(concept);
+    }
 }

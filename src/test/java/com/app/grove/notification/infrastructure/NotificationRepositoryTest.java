@@ -57,7 +57,7 @@ class NotificationRepositoryTest extends AbstractNeo4jTest {
         notificationRepository.saveAll(List.of(first, second));
 
         var pageable = PageRequest.of(0, 10);
-        var notifications = notificationRepository.findByUser(user, pageable).getContent();
+        var notifications = notificationRepository.findByUser_Id(user.getId(), pageable).getContent();
 
         assertThat(notifications).hasSize(2);
         assertThat(notifications).extracting(Notification::getMessage)

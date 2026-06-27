@@ -64,13 +64,13 @@ public class CommentService {
     public Page<CommentResponseDTO> getCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-        return commentRepository.findByConcept(concept, pageable).map(this::convertToResponse);
+        return commentRepository.findByConcept_Id(conceptId, pageable).map(this::convertToResponse);
     }
 
     public Page<CommentResponseDTO> getRootCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-        return commentRepository.findByConceptAndParentCommentIsNull(concept, pageable).map(this::convertToResponse);
+        return commentRepository.findByConcept_IdAndParentCommentIsNull(conceptId, pageable).map(this::convertToResponse);
     }
 
     @Transactional
