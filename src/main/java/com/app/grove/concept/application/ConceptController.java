@@ -1,9 +1,9 @@
 package com.app.grove.concept.application;
 
 import com.app.grove.concept.domain.ConceptService;
-import com.app.grove.concept.dto.ConceptRequest;
-import com.app.grove.concept.dto.ConceptResponse;
-import com.app.grove.concept.dto.ConceptUpdateRequest;
+import com.app.grove.concept.dto.*;
+import com.app.grove.flashcard.dto.FlashcardCreateRequest;
+import com.app.grove.flashcard.dto.FlashcardResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -12,15 +12,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/concepts")
@@ -29,12 +24,13 @@ public class ConceptController {
 
     private final ConceptService conceptService;
 
+    // ─── CRUD ─────────────────────────────────────────────────────────────────
+
     @PostMapping
     public ResponseEntity<ConceptResponse> createConcept(
         @Valid @RequestBody ConceptRequest request
     ) {
-        ConceptResponse response = conceptService.createConcept(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(conceptService.createConcept(request));
     }
 
     @GetMapping("/{id}")
@@ -42,17 +38,19 @@ public class ConceptController {
         return ResponseEntity.ok(conceptService.getConceptById(id));
     }
 
+    /**
+     * Rich concept detail including full tags, connection count and user confidence level.
+     * Used by the right-side node detail panel in the Knowledge Graph view.
+     */
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<ConceptDetailResponse> getConceptDetail(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getConceptDetail(id));
+    }
+
     @GetMapping
     public ResponseEntity<Page<ConceptResponse>> getAllConcepts(
             @PageableDefault(size = 20, sort = "title") Pageable pageable) {
         return ResponseEntity.ok(conceptService.getAllConcepts(pageable));
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<Page<ConceptResponse>> searchByTitle(
-            @RequestParam String keyword,
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(conceptService.searchByTitle(keyword, pageable));
     }
 
     @PutMapping("/{id}")
@@ -79,6 +77,92 @@ public class ConceptController {
         );
     }
 
+    // ─── Search ───────────────────────────────────────────────────────────────
+
+    /**
+     * Global search across title, content and tag names.
+     * Use ?keyword=xxx  — powers the main search bar.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Page<ConceptResponse>> search(
+            @RequestParam String keyword,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(conceptService.searchGlobal(keyword, pageable));
+    }
+
+    // ─── Graph data ───────────────────────────────────────────────────────────
+
+    /**
+     * Returns the full graph (nodes + edges) for the public workspace.
+     * Default view for the Knowledge Graph page when no workspace filter is active.
+     * GET /api/v1/concepts/graph/public
+     */
+    @GetMapping("/graph/public")
+    public ResponseEntity<GraphResponseDTO> getPublicGraph() {
+        return ResponseEntity.ok(conceptService.getPublicGraph());
+    }
+
+    /**
+     * Returns the full graph (nodes + edges) for a specific workspace.
+     * GET /api/v1/concepts/graph?workspaceId={id}
+     */
+    @GetMapping("/graph")
+    public ResponseEntity<GraphResponseDTO> getGraphByWorkspace(
+            @RequestParam String workspaceId) {
+        return ResponseEntity.ok(conceptService.getGraphByWorkspace(workspaceId));
+    }
+
+    /**
+     * Returns a local neighborhood subgraph centered on a concept.
+     * Called when the user clicks a node to see its local connections.
+     * GET /api/v1/concepts/{id}/graph
+     */
+    @GetMapping("/{id}/graph")
+    public ResponseEntity<GraphResponseDTO> getNeighborhoodGraph(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getNeighborhoodGraph(id));
+    }
+
+    // ─── Cluster / Tag filtering ──────────────────────────────────────────────
+
+    /**
+     * Get all concepts belonging to a tag/cluster (by tag ID).
+     * Powers "Vista de clúster" feature.
+     * GET /api/v1/concepts/cluster?tagId={id}
+     */
+    @GetMapping("/cluster")
+    public ResponseEntity<Page<ConceptResponse>> getByCluster(
+            @RequestParam String tagId,
+            @PageableDefault(size = 50) Pageable pageable) {
+        return ResponseEntity.ok(conceptService.getConceptsByTag(tagId, pageable));
+    }
+
+    /**
+     * Get concepts by tag name (e.g. ?tagName=Algebra).
+     * GET /api/v1/concepts/cluster/by-name?tagName={name}
+     */
+    @GetMapping("/cluster/by-name")
+    public ResponseEntity<Page<ConceptResponse>> getByClusterName(
+            @RequestParam String tagName,
+            @PageableDefault(size = 50) Pageable pageable) {
+        return ResponseEntity.ok(conceptService.getConceptsByTagName(tagName, pageable));
+    }
+
+    // ─── Learning paths ───────────────────────────────────────────────────────
+
+    /**
+     * Returns a topologically ordered list of concepts for a workspace.
+     * Concepts with no prerequisites come first (depth=0).
+     * Powers "Rutas de aprendizaje guiadas" feature.
+     * GET /api/v1/concepts/learning-path?workspaceId={id}
+     */
+    @GetMapping("/learning-path")
+    public ResponseEntity<List<ConceptResponse>> getLearningPath(
+            @RequestParam String workspaceId) {
+        return ResponseEntity.ok(conceptService.getLearningPath(workspaceId));
+    }
+
+    // ─── Prerequisites ────────────────────────────────────────────────────────
+
     @PostMapping("/{id}/prerequisites/{prereqId}")
     public ResponseEntity<ConceptResponse> addPrerequisite(
         @PathVariable String id,
@@ -92,10 +176,32 @@ public class ConceptController {
         @PathVariable String id,
         @PathVariable String prereqId
     ) {
-        return ResponseEntity.ok(
-            conceptService.removePrerequisite(id, prereqId)
-        );
+        return ResponseEntity.ok(conceptService.removePrerequisite(id, prereqId));
     }
+
+    /**
+     * Returns all transitive prerequisites for a concept (full chain, ordered by depth).
+     * Powers the "Visualización de prerrequisitos" feature.
+     * GET /api/v1/concepts/{id}/prerequisites
+     */
+    @GetMapping("/{id}/prerequisites")
+    public ResponseEntity<List<ConceptResponse>> getAllPrerequisites(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getAllPrerequisites(id));
+    }
+
+    // ─── Related concepts ─────────────────────────────────────────────────────
+
+    /**
+     * Returns concepts sharing at least one tag with the given concept.
+     * Powers the "RELATED BRANCHES" section in the node detail panel.
+     * GET /api/v1/concepts/{id}/related
+     */
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<ConceptResponse>> getRelatedConcepts(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getRelatedConcepts(id));
+    }
+
+    // ─── Tags ─────────────────────────────────────────────────────────────────
 
     @PostMapping("/{id}/tags/{tagId}")
     public ResponseEntity<ConceptResponse> addTag(
@@ -110,8 +216,48 @@ public class ConceptController {
         @PathVariable String id,
         @PathVariable String tagId
     ) {
-        return ResponseEntity.ok(
-            conceptService.removeTagFromConcept(id, tagId)
+        return ResponseEntity.ok(conceptService.removeTagFromConcept(id, tagId));
+    }
+
+    // ─── Flashcards (nested) ──────────────────────────────────────────────────
+
+    /**
+     * Creates a flashcard and links it to this concept.
+     * POST /api/v1/concepts/{id}/flashcards
+     */
+    @PostMapping("/{id}/flashcards")
+    public ResponseEntity<FlashcardResponse> addFlashcard(
+        @PathVariable String id,
+        @Valid @RequestBody FlashcardCreateRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            conceptService.addFlashcardToConcept(id, request)
         );
+    }
+
+    /**
+     * Returns all flashcards linked to this concept.
+     * GET /api/v1/concepts/{id}/flashcards
+     */
+    @GetMapping("/{id}/flashcards")
+    public ResponseEntity<List<FlashcardResponse>> getFlashcards(@PathVariable String id) {
+        return ResponseEntity.ok(conceptService.getFlashcardsForConcept(id));
+    }
+
+    // ─── Confidence levels ────────────────────────────────────────────────────
+
+    /**
+     * Sets the authenticated user's confidence level for this concept.
+     * Body: { "confidenceLevel": 75 }
+     * Returns the updated concept detail (including the new status badge).
+     * PUT /api/v1/concepts/{id}/confidence
+     */
+    @PutMapping("/{id}/confidence")
+    public ResponseEntity<ConceptDetailResponse> setConfidence(
+        @PathVariable String id,
+        @RequestBody Map<String, Integer> body
+    ) {
+        int level = body.getOrDefault("confidenceLevel", 0);
+        return ResponseEntity.ok(conceptService.setConfidenceLevel(id, level));
     }
 }
