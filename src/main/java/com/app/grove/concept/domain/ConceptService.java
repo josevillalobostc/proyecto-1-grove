@@ -72,11 +72,6 @@ public class ConceptService {
         concept.setWorkspace(workspace);
         concept = conceptRepository.save(concept);
 
-        if (workspace.getConcepts() != null) {
-            workspace.getConcepts().add(concept);
-            workspaceRepository.save(workspace);
-        }
-
         eventPublisher.publishEvent(new ConceptCreatedNotificationEvent(
                 concept.getId(),
                 concept.getTitle(),
