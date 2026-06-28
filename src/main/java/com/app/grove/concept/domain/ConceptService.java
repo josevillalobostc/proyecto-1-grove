@@ -343,6 +343,7 @@ public class ConceptService {
             nodes.addAll(center.getPrerequisites());
         }
         nodes.addAll(conceptRepository.findRelatedConcepts(conceptId));
+        nodes.addAll(conceptRepository.findDependents(conceptId));
 
         return buildGraph(nodes);
     }

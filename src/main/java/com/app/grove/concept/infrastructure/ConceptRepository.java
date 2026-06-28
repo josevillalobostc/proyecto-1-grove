@@ -116,6 +116,16 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
     // ─── Related concepts ─────────────────────────────────────────────────────
 
     /**
+     * Returns concepts that have the given concept as a prerequisite (dependents).
+     */
+    @Query("""
+        MATCH (dependent:Concept)-[:PREREQUISITE]->(c:Concept {id: $conceptId})
+        RETURN dependent
+        """)
+    List<Concept> findDependents(@Param("conceptId") String conceptId);
+
+
+    /**
      * Returns concepts that share at least one tag with the given concept,
      * excluding the concept itself. Used for "RELATED BRANCHES" in the detail panel.
      */
