@@ -343,7 +343,19 @@ public class ConceptService {
             nodes.addAll(center.getPrerequisites());
         }
         nodes.addAll(conceptRepository.findRelatedConcepts(conceptId));
-        nodes.addAll(conceptRepository.findDependents(conceptId));
+        
+        List<Concept> dependents = conceptRepository.findDependents(conceptId);
+        for (Concept dep : dependents) {
+            if (dep.getPrerequisites() == null) {
+                dep.setPrerequisites(new ArrayList<>());
+            }
+            boolean exists = dep.getPrerequisites().stream()
+                    .anyMatch(p -> p.getId().equals(center.getId()));
+            if (!exists) {
+                dep.getPrerequisites().add(center);
+            }
+        }
+        nodes.addAll(dependents);
 
         return buildGraph(nodes);
     }
