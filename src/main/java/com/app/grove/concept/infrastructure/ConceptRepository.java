@@ -102,7 +102,7 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
     // ─── Prerequisites ────────────────────────────────────────────────────────
 
     @Query(
-        "MATCH path = (start:Concept)-[:PREREQUISITE*]->(target:Concept) " +
+        "MATCH path = (start:Concept)-[:PREREQUISITE*]-(target:Concept) " +
             "WHERE target.id = $conceptId " +
             "WITH start, min(length(path)) AS pathLength " +
             "RETURN start " +
@@ -110,7 +110,7 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
     )
     List<Concept> findAllPrerequisites(@Param("conceptId") String conceptId);
 
-    @Query("RETURN EXISTS((:Concept {id: $startId})-[:PREREQUISITE*]->(:Concept {id: $endId}))")
+    @Query("RETURN EXISTS((:Concept {id: $startId})-[:PREREQUISITE*]-(:Concept {id: $endId}))")
     boolean existsPathBetween(@Param("startId") String startId, @Param("endId") String endId);
 
     // ─── Related concepts ─────────────────────────────────────────────────────
@@ -147,7 +147,7 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
      */
     @Query("""
         MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace {id: $workspaceId})
-        OPTIONAL MATCH path = (root:Concept)-[:PREREQUISITE*]->(c)
+        OPTIONAL MATCH path = (root:Concept)-[:PREREQUISITE*]-(c)
         WHERE (root)-[:BELONGS_TO]->(w)
         RETURN c, coalesce(max(length(path)), 0) AS depth
         ORDER BY depth ASC
