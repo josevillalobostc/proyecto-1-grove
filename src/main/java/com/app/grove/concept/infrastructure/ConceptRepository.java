@@ -157,10 +157,10 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
      */
     @Query("""
         MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace {id: $workspaceId})
-        OPTIONAL MATCH path = (root:Concept)-[:PREREQUISITE*]-(c)
-        WHERE (root)-[:BELONGS_TO]->(w)
-        RETURN c, coalesce(max(length(path)), 0) AS depth
+        OPTIONAL MATCH path = (c)-[:PREREQUISITE*]->(leaf:Concept)
+        WITH c, coalesce(max(length(path)), 0) AS depth
         ORDER BY depth ASC
+        RETURN c
         """)
     List<Concept> findLearningPathByWorkspace(@Param("workspaceId") String workspaceId);
 }

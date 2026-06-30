@@ -111,6 +111,23 @@ public class DataInitializer implements CommandLineRunner{
                 complejidad, estDatos, teoriaGrafos, progDinamica, algOptimizacion, descensoGradiente,
                 regresionLineal, regresionLogistica, machineLearning, redesNeuronales, deepLearning
             ));
+
+            // Agregar Flashcards
+            com.app.grove.flashcard.domain.Flashcard f1 = new com.app.grove.flashcard.domain.Flashcard();
+            f1.setFront("¿Qué es la derivada de una función en un punto?");
+            f1.setBack("La tasa de cambio instantánea de la función en ese punto, equivalente a la pendiente de la recta tangente.");
+            f1.setDifficulty(2);
+            f1.setCreatedAt(LocalDateTime.now());
+            calculoDif.setFlashcards(Arrays.asList(f1));
+            conceptRepository.save(calculoDif);
+
+            com.app.grove.flashcard.domain.Flashcard f2 = new com.app.grove.flashcard.domain.Flashcard();
+            f2.setFront("¿Qué es el Teorema Fundamental del Cálculo?");
+            f2.setBack("Establece que la derivación y la integración son operaciones inversas.");
+            f2.setDifficulty(3);
+            f2.setCreatedAt(LocalDateTime.now());
+            calculoInt.setFlashcards(Arrays.asList(f2));
+            conceptRepository.save(calculoInt);
         }
     }
 

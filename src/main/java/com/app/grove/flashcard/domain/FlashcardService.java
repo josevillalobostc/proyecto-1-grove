@@ -128,13 +128,17 @@ public class FlashcardService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
+        List<com.app.grove.flashcard.domain.Flashcard> flashcards = flashcardRepository.findByConceptId(conceptId);
         List<UserFlashcardProgress> progressList = progressRepository
                 .findByUserIdAndConceptId(currentUser.getId(), conceptId);
 
-        List<FlashcardStudyResponse> cards = progressList.stream()
-                .filter(p -> p.getFlashcard() != null)
-                .map(p -> toStudyResponse(p.getFlashcard(), p))
-                .collect(Collectors.toList());
+        List<FlashcardStudyResponse> cards = flashcards.stream().map(f -> {
+            UserFlashcardProgress p = progressList.stream()
+                    .filter(prog -> prog.getFlashcard() != null && prog.getFlashcard().getId().equals(f.getId()))
+                    .findFirst()
+                    .orElse(null);
+            return toStudyResponse(f, p);
+        }).collect(Collectors.toList());
 
         StudySessionResponse session = new StudySessionResponse();
         session.setTotal(cards.size());

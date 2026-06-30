@@ -32,6 +32,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -49,6 +51,7 @@ public class ConceptService {
     // ─── CRUD ─────────────────────────────────────────────────────────────────
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public ConceptResponse createConcept(ConceptRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User creator = (User) auth.getPrincipal();
@@ -82,6 +85,7 @@ public class ConceptService {
     }
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public ConceptResponse forkConcept(String originalConceptId, String targetWorkspaceId) {
         Concept original = conceptRepository
             .findById(originalConceptId)
@@ -174,6 +178,7 @@ public class ConceptService {
     }
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public ConceptResponse updateConcept(String id, ConceptUpdateRequest request) {
         Concept concept = conceptRepository
             .findById(id)
@@ -182,7 +187,8 @@ public class ConceptService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
-        if (!concept.getCreatedBy().getId().equals(currentUser.getId()) && currentUser.getRole() != Role.ROLE_ADMIN) {
+        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
+        if (!isCreator && currentUser.getRole() != Role.ROLE_ADMIN) {
             throw new ForbiddenException("Solo el creador del concepto o un administrador pueden modificarlo.");
         }
 
@@ -194,6 +200,7 @@ public class ConceptService {
     }
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public void deleteConcept(String id) {
         Concept concept = conceptRepository
             .findById(id)
@@ -202,8 +209,8 @@ public class ConceptService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
-        if (!concept.getCreatedBy().getId().equals(currentUser.getId())
-                && currentUser.getRole() != Role.ROLE_ADMIN) {
+        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
+        if (!isCreator && currentUser.getRole() != Role.ROLE_ADMIN) {
             throw new ForbiddenException("Solo el creador del concepto o un administrador pueden eliminarlo.");
         }
         conceptRepository.delete(concept);
@@ -212,6 +219,7 @@ public class ConceptService {
     // ─── Prerequisites ────────────────────────────────────────────────────────
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public ConceptResponse addPrerequisite(String conceptId, String prerequisiteId) {
         if (conceptId.equals(prerequisiteId)) {
             throw new InvalidOperationException("Un concepto no puede ser prerrequisito de sí mismo.");
@@ -236,6 +244,7 @@ public class ConceptService {
     }
 
     @Transactional
+    @CacheEvict(value = {"graphs", "learningPaths"}, allEntries = true)
     public ConceptResponse removePrerequisite(String conceptId, String prerequisiteId) {
         Concept concept = conceptRepository
             .findById(conceptId)
@@ -312,6 +321,7 @@ public class ConceptService {
      * Nodes = concepts, Edges = PREREQUISITE relationships.
      * Used by the Knowledge Graph visualization (D3.js / Cytoscape.js).
      */
+    @Cacheable(value = "graphs", key = "'workspace_' + #workspaceId")
     public GraphResponseDTO getGraphByWorkspace(String workspaceId) {
         workspaceRepository.findById(workspaceId)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
@@ -323,6 +333,7 @@ public class ConceptService {
     /**
      * Builds the graph for all public workspaces (default view when no workspace selected).
      */
+    @Cacheable(value = "graphs", key = "'public'")
     public GraphResponseDTO getPublicGraph() {
         List<Concept> concepts = conceptRepository.findAllInPublicWorkspaces();
         return buildGraph(concepts);
@@ -425,6 +436,7 @@ public class ConceptService {
      * Returns a topologically ordered list of concepts (by prerequisite depth).
      * Concepts with no prerequisites come first; their dependents follow.
      */
+    @Cacheable(value = "learningPaths", key = "#workspaceId")
     public List<ConceptResponse> getLearningPath(String workspaceId) {
         workspaceRepository.findById(workspaceId)
             .orElseThrow(() -> new ResourceNotFoundException("Workspace no encontrado: " + workspaceId));
