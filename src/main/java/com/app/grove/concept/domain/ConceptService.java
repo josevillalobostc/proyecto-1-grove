@@ -61,7 +61,7 @@ public class ConceptService {
 
         if (!workspace.isPublic()) {
             boolean isMember = workspace.getMembers() != null && workspace.getMembers().stream()
-                    .anyMatch(m -> m.getId().equals(creator.getId()));
+                    .anyMatch(m -> m.getId() != null && m.getId().equals(creator.getId()));
             if (!isMember) {
                 throw new ForbiddenException("No eres miembro de este workspace privado.");
             }
@@ -189,7 +189,7 @@ public class ConceptService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
-        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
+        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
         if (!isCreator && currentUser.getRole() != Role.ROLE_ADMIN) {
             throw new ForbiddenException("Solo el creador del concepto o un administrador pueden modificarlo.");
         }
@@ -211,7 +211,7 @@ public class ConceptService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
-        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
+        boolean isCreator = concept.getCreatedBy() != null && concept.getCreatedBy().getId() != null && concept.getCreatedBy().getId().equals(currentUser.getId());
         if (!isCreator && currentUser.getRole() != Role.ROLE_ADMIN) {
             throw new ForbiddenException("Solo el creador del concepto o un administrador pueden eliminarlo.");
         }
