@@ -45,13 +45,12 @@ class CommentControllerTest {
     @Test
     void shouldCreateCommentWhenRequestIsValid() throws Exception {
         CommentRequestDTO request = new CommentRequestDTO();
-        request.setText("Great explanation");
-        request.setAuthorId("u1");
+        request.setContent("This is a new comment");
         request.setConceptId("c1");
 
         CommentResponseDTO response = new CommentResponseDTO();
         response.setId("cm1");
-        response.setText("Great explanation");
+        response.setContent("This is a new comment");
         response.setAuthorId("u1");
         response.setConceptId("c1");
         response.setCreatedAt(LocalDateTime.now());

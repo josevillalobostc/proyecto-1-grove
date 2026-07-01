@@ -7,10 +7,10 @@ import java.time.LocalDateTime;
 @Data
 public class CommentResponseDTO {
     private String id;
-    private String text;
+    private String content;
     private LocalDateTime createdAt;
     private String authorId;
-    private String authorName;
+    private String authorUsername;
     private String conceptId;
-    private String parentCommentId;
+    private String parentId;
 }

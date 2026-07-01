@@ -31,28 +31,23 @@ public class CommentService {
 
     @Transactional
     public CommentResponseDTO createComment(CommentRequestDTO request) {
-
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) auth.getPrincipal();
 
-        if (!request.getAuthorId().equals(currentUser.getId())) {
-            throw new ForbiddenException("No puedes comentar en nombre de otro usuario.");
-        }
-
-        User author = userRepository.findById(request.getAuthorId())
+        User author = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Autor no encontrado"));
 
         Concept concept = conceptRepository.findById(request.getConceptId())
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
 
         Comment comment = new Comment();
-        comment.setText(request.getText());
+        comment.setText(request.getContent());
         comment.setCreatedAt(LocalDateTime.now());
         comment.setAuthor(author);
         comment.setConcept(concept);
 
-        if (request.getParentCommentId() != null && !request.getParentCommentId().isEmpty()) {
-            Comment parent = commentRepository.findById(request.getParentCommentId())
+        if (request.getParentId() != null && !request.getParentId().isEmpty()) {
+            Comment parent = commentRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Comentario padre no encontrado"));
             comment.setParentComment(parent);
         }
@@ -70,7 +65,7 @@ public class CommentService {
     public Page<CommentResponseDTO> getRootCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-        return commentRepository.findByConcept_IdAndParentCommentIsNull(conceptId, pageable).map(this::convertToResponse);
+        return commentRepository.findRootCommentsByConceptId(conceptId, pageable).map(this::convertToResponse);
     }
 
     @Transactional
@@ -83,9 +78,10 @@ public class CommentService {
 
     private CommentResponseDTO convertToResponse(Comment comment) {
         CommentResponseDTO response = modelMapper.map(comment, CommentResponseDTO.class);
+        response.setContent(comment.getText());
         if (comment.getAuthor() != null) {
             response.setAuthorId(comment.getAuthor().getId());
-            response.setAuthorName(comment.getAuthor().getUsername());
+            response.setAuthorUsername(comment.getAuthor().getUsername());
         }
 
         if (comment.getConcept() != null) {
@@ -93,7 +89,7 @@ public class CommentService {
         }
 
         if (comment.getParentComment() != null) {
-            response.setParentCommentId(comment.getParentComment().getId());
+            response.setParentId(comment.getParentComment().getId());
         }
 
         return response;

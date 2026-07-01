@@ -76,8 +76,7 @@ class CommentServiceTest {
         concept.setTitle("Graph Node");
 
         CommentRequestDTO request = new CommentRequestDTO();
-        request.setText("Nice post");
-        request.setAuthorId("u1");
+        request.setContent("This is a new comment");
         request.setConceptId("c1");
 
         when(userRepository.findById("u1")).thenReturn(Optional.of(author));
@@ -88,7 +87,7 @@ class CommentServiceTest {
         CommentResponseDTO response = commentService.createComment(request);
 
         assertThat(response).isNotNull();
-        assertThat(response.getText()).isEqualTo("Nice post");
+        assertThat(response.getContent()).isEqualTo("This is a new comment");
         assertThat(response.getAuthorId()).isEqualTo("u1");
         assertThat(response.getConceptId()).isEqualTo("c1");
     }
@@ -106,10 +105,9 @@ class CommentServiceTest {
         concept.setId("c1");
 
         CommentRequestDTO request = new CommentRequestDTO();
-        request.setText("Reply");
-        request.setAuthorId("u1");
+        request.setContent("Reply comment");
         request.setConceptId("c1");
-        request.setParentCommentId("missing");
+        request.setParentId("missing");
 
         when(userRepository.findById("u1")).thenReturn(Optional.of(author));
         when(conceptRepository.findById("c1")).thenReturn(Optional.of(concept));
