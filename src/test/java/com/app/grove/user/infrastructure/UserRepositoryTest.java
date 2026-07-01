@@ -36,10 +36,10 @@ class UserRepositoryTest extends AbstractNeo4jTest {
 
         userRepository.save(user);
 
-        Optional<User> found = userRepository.findByUsername("testuser");
+        java.util.List<User> foundUser = userRepository.findByUsername("testuser");
 
-        assertThat(found).isPresent();
-        assertThat(found.get().getEmail()).isEqualTo("testuser@example.com");
+        assertThat(foundUser).isNotEmpty();
+        assertThat(foundUser.get(0).getEmail()).isEqualTo("testuser@example.com");
         assertThat(userRepository.existsByUsername("testuser")).isTrue();
         assertThat(userRepository.existsByEmail("testuser@example.com")).isTrue();
     }

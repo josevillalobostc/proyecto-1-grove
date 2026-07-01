@@ -85,7 +85,9 @@ public class AuthService {
 
         );
 
-        User account = userRepository.findByUsername(username).orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        java.util.List<User> accounts = userRepository.findByUsername(username);
+        if (accounts.isEmpty()) throw new UsernameNotFoundException("Usuario no encontrado: " + username);
+        User account = accounts.get(0);
         String token = jwtService.generateToken(account);
         TokenResponse response = new TokenResponse(token);
         return response;

@@ -21,9 +21,10 @@ public class UserService implements UserDetailsService{
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository
-                .findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
+        java.util.List<User> accounts = userRepository.findByUsername(username);
+        if (accounts.isEmpty()) throw new UsernameNotFoundException("Usuario no encontrado con correo o nombre de usuario: " + username);
+        User user = accounts.get(0);
+        return user;
     }
 
     public UserResponse getUserInfo(){

@@ -44,10 +44,10 @@ public class DataInitializer implements CommandLineRunner{
     @Override
     public void run(String... args) throws Exception {
         System.out.println("DEBUG-DI: Starting data initializer");
-        Optional<User> existingAdmin = userRepository.findByUsername(adminName);
-        System.out.println("DEBUG-DI: Checked existing admin: " + existingAdmin.isPresent());
+        java.util.List<User> existingAdmins = userRepository.findByUsername(adminName);
+        System.out.println("DEBUG-DI: Checked existing admin: " + !existingAdmins.isEmpty());
 
-        if (existingAdmin.isEmpty()) {
+        if (existingAdmins.isEmpty()) {
             System.out.println("DEBUG-DI: Creating new admin");
             User admin = new User();
             admin.setUsername(adminName);

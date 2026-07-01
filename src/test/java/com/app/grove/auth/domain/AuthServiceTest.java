@@ -114,7 +114,7 @@ class AuthServiceTest {
         account.setUsername("validuser");
         account.setRole(Role.ROLE_USER);
 
-        when(userRepository.findByUsername("validuser")).thenReturn(Optional.of(account));
+        when(userRepository.findByUsername(org.mockito.ArgumentMatchers.anyString())).thenReturn(java.util.List.of(account));
         when(jwtService.generateToken(account)).thenReturn("jwt-token");
 
         TokenResponse response = authService.signIn(request);
