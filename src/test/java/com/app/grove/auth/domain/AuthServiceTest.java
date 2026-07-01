@@ -8,6 +8,7 @@ import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.dto.UserResponse;
 import com.app.grove.user.infrastructure.UserRepository;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,9 @@ class AuthServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private WorkspaceRepository workspaceRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -52,7 +56,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtService, authenticationManager, new ModelMapper(), eventPublisher);
+        authService = new AuthService(userRepository, workspaceRepository, passwordEncoder, jwtService, authenticationManager, new ModelMapper(), eventPublisher);
     }
 
     @Test
