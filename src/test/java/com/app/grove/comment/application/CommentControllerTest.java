@@ -62,7 +62,7 @@ class CommentControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.id").value("cm1"))
-            .andExpect(jsonPath("$.text").value("Great explanation"));
+            .andExpect(jsonPath("$.content").value("This is a new comment"));
     }
 
     @Test
