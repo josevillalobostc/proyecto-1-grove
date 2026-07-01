@@ -19,6 +19,8 @@ import com.app.grove.user.domain.Role;
 import com.app.grove.user.domain.User;
 import com.app.grove.user.dto.UserResponse;
 import com.app.grove.user.infrastructure.UserRepository;
+import com.app.grove.workspace.domain.Workspace;
+import com.app.grove.workspace.infrastructure.WorkspaceRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
+    private final WorkspaceRepository workspaceRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -53,6 +56,16 @@ public class AuthService {
         account.setRole(Role.ROLE_USER);
         account.setCreatedAt(LocalDateTime.now());
         User savedUser = userRepository.save(account);
+
+        // Auto-create a personal workspace for every new user
+        Workspace personal = new Workspace();
+        personal.setName(savedUser.getUsername() + "'s Workspace");
+        personal.setDescription("Espacio personal de " + savedUser.getUsername());
+        personal.setPublic(false);
+        personal.setCreatedAt(java.time.LocalDateTime.now());
+        personal.setCreatedBy(savedUser);
+        personal.setMembers(new java.util.ArrayList<>(java.util.List.of(savedUser)));
+        workspaceRepository.save(personal);
 
         eventPublisher.publishEvent(new WelcomeEmailEvent(
                 savedUser.getEmail(),
