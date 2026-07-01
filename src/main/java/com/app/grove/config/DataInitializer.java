@@ -18,6 +18,8 @@ import com.app.grove.user.domain.User;
 import com.app.grove.user.infrastructure.UserRepository;
 import com.app.grove.workspace.domain.Workspace;
 import com.app.grove.workspace.infrastructure.WorkspaceRepository;
+import com.app.grove.tag.domain.Tag;
+import com.app.grove.tag.infrastructure.TagRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,8 +29,8 @@ public class DataInitializer implements CommandLineRunner{
     private final PasswordEncoder passwordEncoder;
     private final WorkspaceRepository workspaceRepository;
     private final ConceptRepository conceptRepository;
-
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
 
     @Value("${ADMIN_NAME}")
     private String adminName;
@@ -105,11 +107,54 @@ public class DataInitializer implements CommandLineRunner{
             redesNeuronales.setPrerequisites(Arrays.asList(machineLearning, descensoGradiente, algebraLineal));
             deepLearning.setPrerequisites(Arrays.asList(redesNeuronales, algebraLineal, calculoDif));
 
+            // Tags
+            Tag mathTag = new Tag(null, "Matemáticas", "Conceptos matemáticos", "#ff0000", null);
+            Tag statsTag = new Tag(null, "Estadística", "Conceptos estadísticos", "#00ff00", null);
+            Tag algoTag = new Tag(null, "Algoritmos", "Algoritmos y estructuras", "#0000ff", null);
+            Tag aiTag = new Tag(null, "Inteligencia Artificial", "IA y Machine Learning", "#ffff00", null);
+            tagRepository.saveAll(Arrays.asList(mathTag, statsTag, algoTag, aiTag));
+
+            calculoDif.setTags(Arrays.asList(mathTag));
+            calculoInt.setTags(Arrays.asList(mathTag));
+            algebraLineal.setTags(Arrays.asList(mathTag));
+            probabilidad.setTags(Arrays.asList(statsTag, mathTag));
+            estadisticaDesc.setTags(Arrays.asList(statsTag));
+            estadisticaInf.setTags(Arrays.asList(statsTag));
+            cadenasMarkov.setTags(Arrays.asList(statsTag, aiTag));
+
+            complejidad.setTags(Arrays.asList(algoTag));
+            estDatos.setTags(Arrays.asList(algoTag));
+            teoriaGrafos.setTags(Arrays.asList(algoTag, mathTag));
+            progDinamica.setTags(Arrays.asList(algoTag));
+            algOptimizacion.setTags(Arrays.asList(algoTag, mathTag));
+            descensoGradiente.setTags(Arrays.asList(aiTag, mathTag));
+
+            regresionLineal.setTags(Arrays.asList(aiTag, statsTag));
+            regresionLogistica.setTags(Arrays.asList(aiTag, statsTag));
+            machineLearning.setTags(Arrays.asList(aiTag));
+            redesNeuronales.setTags(Arrays.asList(aiTag));
+            deepLearning.setTags(Arrays.asList(aiTag));
+
+            // Más conceptos
+            Concept ciberseguridad = crearConceptoBase("Ciberseguridad", "Protección de sistemas y redes", savedWorkspace, savedAdmin);
+            Concept criptografia = crearConceptoBase("Criptografía", "Técnicas de cifrado de datos", savedWorkspace, savedAdmin);
+            Concept redes = crearConceptoBase("Redes de Computadoras", "Comunicación entre sistemas", savedWorkspace, savedAdmin);
+            
+            Tag netTag = new Tag(null, "Redes", "Infraestructura", "#00ffff", null);
+            Tag secTag = new Tag(null, "Seguridad", "Protección", "#ff00ff", null);
+            tagRepository.saveAll(Arrays.asList(netTag, secTag));
+            
+            ciberseguridad.setPrerequisites(Arrays.asList(redes, criptografia));
+            ciberseguridad.setTags(Arrays.asList(secTag, netTag));
+            criptografia.setTags(Arrays.asList(secTag, mathTag));
+            redes.setTags(Arrays.asList(netTag));
+
             // Guardar en la Base de Datos
             conceptRepository.saveAll(Arrays.asList(
                 calculoDif, calculoInt, algebraLineal, probabilidad, estadisticaDesc, estadisticaInf, cadenasMarkov,
                 complejidad, estDatos, teoriaGrafos, progDinamica, algOptimizacion, descensoGradiente,
-                regresionLineal, regresionLogistica, machineLearning, redesNeuronales, deepLearning
+                regresionLineal, regresionLogistica, machineLearning, redesNeuronales, deepLearning,
+                ciberseguridad, criptografia, redes
             ));
 
             // Agregar Flashcards
