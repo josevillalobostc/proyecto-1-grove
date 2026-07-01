@@ -65,7 +65,7 @@ public class CommentService {
     public Page<CommentResponseDTO> getRootCommentsByConcept(String conceptId, Pageable pageable) {
         Concept concept = conceptRepository.findById(conceptId)
                 .orElseThrow(() -> new ResourceNotFoundException("Concepto no encontrado"));
-        return commentRepository.findRootCommentsByConceptId(conceptId, pageable).map(this::convertToResponse);
+        return commentRepository.findByConcept_IdAndParentCommentIsNull(conceptId, pageable).map(this::convertToResponse);
     }
 
     @Transactional

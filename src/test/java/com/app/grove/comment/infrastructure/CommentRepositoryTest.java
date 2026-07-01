@@ -67,7 +67,7 @@ class CommentRepositoryTest extends AbstractNeo4jTest {
 
         var pageable = PageRequest.of(0, 10);
         var allComments = commentRepository.findByConcept_Id(concept.getId(), pageable).getContent();
-        Page<Comment> rootComments = commentRepository.findRootCommentsByConceptId(concept.getId(), PageRequest.of(0, 10));
+        Page<Comment> rootComments = commentRepository.findByConcept_IdAndParentCommentIsNull(concept.getId(), PageRequest.of(0, 10));
 
         assertThat(allComments).hasSize(2);
         assertThat(rootComments.getContent()).hasSize(1);
