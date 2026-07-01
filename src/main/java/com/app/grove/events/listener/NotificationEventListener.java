@@ -33,7 +33,7 @@ public class NotificationEventListener {
         User creator = userRepository.findById(event.getCreatedByUserId()).orElse(null);
 
         for (User member : members) {
-            if (creator != null && member.getId().equals(creator.getId())) {
+            if (creator != null && member.getId() != null && member.getId().equals(creator.getId())) {
                 continue;
             }
             Notification notification = new Notification();

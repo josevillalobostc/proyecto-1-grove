@@ -70,4 +70,13 @@ public class GlobalExceptionHandler {
         pd.setDetail(ex.getMessage());
         return pd;
     }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleException(Exception ex) {
+        ex.printStackTrace();
+        ProblemDetail pd = ProblemDetail.forStatus(500);
+        pd.setTitle("Internal Server Error");
+        pd.setDetail(ex.getMessage());
+        return pd;
+    }
 }
