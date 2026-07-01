@@ -43,9 +43,12 @@ public class DataInitializer implements CommandLineRunner{
 
     @Override
     public void run(String... args) throws Exception {
+        System.out.println("DEBUG-DI: Starting data initializer");
         Optional<User> existingAdmin = userRepository.findByUsername(adminName);
+        System.out.println("DEBUG-DI: Checked existing admin: " + existingAdmin.isPresent());
 
         if (existingAdmin.isEmpty()) {
+            System.out.println("DEBUG-DI: Creating new admin");
             User admin = new User();
             admin.setUsername(adminName);
             admin.setEmail(adminEmail);
@@ -53,7 +56,9 @@ public class DataInitializer implements CommandLineRunner{
             admin.setCreatedAt(LocalDateTime.now());
             admin.setRole(Role.ROLE_ADMIN);
             User savedAdmin = userRepository.save(admin);
+            System.out.println("DEBUG-DI: Saved new admin");
 
+            System.out.println("DEBUG-DI: Creating public workspace");
             Workspace publicWorkspace = new Workspace();
             publicWorkspace.setName("Grove Global Community");
             publicWorkspace.setDescription("Espacio público donde todos los usuarios pueden ver conceptos base.");
@@ -61,6 +66,7 @@ public class DataInitializer implements CommandLineRunner{
             publicWorkspace.setCreatedAt(LocalDateTime.now());
             publicWorkspace.setMembers(new ArrayList<>(Arrays.asList(savedAdmin)));
             Workspace savedWorkspace = workspaceRepository.save(publicWorkspace);
+            System.out.println("DEBUG-DI: Saved public workspace");
 
             Concept welcomeConcept = crearConceptoBase("¿Qué es Grove?", "Grove es una plataforma colaborativa basada en grafos de conocimiento para el aprendizaje.", savedWorkspace, savedAdmin);
             
@@ -184,6 +190,9 @@ public class DataInitializer implements CommandLineRunner{
         concept.setUpdatedAt(LocalDateTime.now());
         concept.setWorkspace(workspace);
         concept.setCreatedBy(creador);
-        return conceptRepository.save(concept);
+        System.out.println("DEBUG-DI: About to save concept: " + titulo);
+        Concept savedConcept = conceptRepository.save(concept);
+        System.out.println("DEBUG-DI: Successfully saved concept: " + titulo);
+        return savedConcept;
     }
 }
