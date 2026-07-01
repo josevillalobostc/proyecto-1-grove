@@ -2,6 +2,7 @@ package com.app.grove.flashcard.domain;
 
 import com.app.grove.flashcard.dto.FlashcardRequest;
 import com.app.grove.flashcard.dto.FlashcardResponse;
+import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.flashcard.infrastructure.FlashcardRepository;
 import com.app.grove.flashcard.infrastructure.UserFlashcardProgressRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,11 +33,14 @@ class FlashcardServiceTest {
     @Mock
     private UserFlashcardProgressRepository progressRepository;
 
+    @Mock
+    private ConceptRepository conceptRepository;
+
     private FlashcardService flashcardService;
 
     @BeforeEach
     void setUp() {
-        flashcardService = new FlashcardService(flashcardRepository, progressRepository, new ModelMapper());
+        flashcardService = new FlashcardService(flashcardRepository, progressRepository, conceptRepository, new ModelMapper());
     }
 
     @Test
