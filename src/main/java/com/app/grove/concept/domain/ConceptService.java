@@ -174,7 +174,9 @@ public class ConceptService {
     }
 
     public Page<ConceptResponse> getAllConcepts(Pageable pageable) {
-        return conceptRepository.findAll(pageable).map(this::mapToResponse);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        return conceptRepository.findAllAccessibleByUser(currentUser.getId(), pageable).map(this::mapToResponse);
     }
 
     @Transactional
@@ -296,14 +298,15 @@ public class ConceptService {
     // ─── Search ───────────────────────────────────────────────────────────────
 
     /**
-     * Global search: title, content, or tag name.
-     * Powers the main search bar in the Knowledge Graph view.
+     * Global search scoped to workspaces accessible by the current user.
      */
     public Page<ConceptResponse> searchGlobal(String keyword, Pageable pageable) {
         if (keyword == null || keyword.trim().isEmpty()) {
             throw new BadRequestException("El término de búsqueda no puede estar vacío.");
         }
-        return conceptRepository.searchGlobal(keyword, pageable).map(this::mapToResponse);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        return conceptRepository.searchGlobal(currentUser.getId(), keyword, pageable).map(this::mapToResponse);
     }
 
     /** Legacy title-only search */
@@ -543,25 +546,35 @@ public class ConceptService {
         );
         if (concept.getPrerequisites() != null) {
             response.setPrerequisiteIds(
-                concept
-                    .getPrerequisites()
-                    .stream()
+                concept.getPrerequisites().stream()
                     .map(Concept::getId)
                     .collect(Collectors.toList())
             );
+            response.setPrerequisiteTitles(
+                concept.getPrerequisites().stream()
+                    .map(Concept::getTitle)
+                    .collect(Collectors.toList())
+            );
+            response.setConnectionCount(concept.getPrerequisites().size());
         } else {
             response.setPrerequisiteIds(List.of());
+            response.setPrerequisiteTitles(List.of());
+            response.setConnectionCount(0);
         }
         if (concept.getTags() != null) {
             response.setTagIds(
-                concept
-                    .getTags()
-                    .stream()
+                concept.getTags().stream()
                     .map(Tag::getId)
+                    .collect(Collectors.toList())
+            );
+            response.setTags(
+                concept.getTags().stream()
+                    .map(t -> modelMapper.map(t, com.app.grove.tag.dto.TagResponse.class))
                     .collect(Collectors.toList())
             );
         } else {
             response.setTagIds(List.of());
+            response.setTags(List.of());
         }
         return response;
     }

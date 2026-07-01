@@ -55,6 +55,12 @@ public class WorkspaceController {
         return ResponseEntity.ok(workspaceService.getPublicWorkspaces(pageable));
     }
 
+    @GetMapping("/mine")
+    public ResponseEntity<Page<WorkspaceResponse>> getMyWorkspaces(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(workspaceService.getMyWorkspaces(pageable));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<WorkspaceResponse> updateWorkspace(
         @PathVariable String id,

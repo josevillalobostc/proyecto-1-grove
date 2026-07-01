@@ -1,11 +1,10 @@
 package com.app.grove.flashcard.domain;
 
-import com.app.grove.concept.domain.Concept;
+import com.app.grove.concept.infrastructure.ConceptRepository;
 import com.app.grove.exceptions.ResourceNotFoundException;
 import com.app.grove.flashcard.dto.*;
 import com.app.grove.flashcard.infrastructure.FlashcardRepository;
 import com.app.grove.flashcard.infrastructure.UserFlashcardProgressRepository;
-import com.app.grove.tag.domain.Tag;
 import com.app.grove.user.domain.User;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -17,8 +16,10 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +27,7 @@ public class FlashcardService {
 
     private final FlashcardRepository flashcardRepository;
     private final UserFlashcardProgressRepository progressRepository;
+    private final ConceptRepository conceptRepository;
     private final ModelMapper modelMapper;
 
     // ─── Basic CRUD ───────────────────────────────────────────────────────────
@@ -63,9 +65,8 @@ public class FlashcardService {
     // ─── Study sessions (SRS) ────────────────────────────────────────────────
 
     /**
-     * Returns all flashcards due for review for the current user,
-     * ordered by next review date (overdue first).
-     * Maps to the "SESSION PROGRESS" header in the Flashcards mockup.
+     * Returns flashcards due for review plus unreviewed flashcards (max 20 new per session).
+     * Due cards come first ordered by nextReviewAt, then unreviewed ones.
      */
     public StudySessionResponse getStudySession() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -74,11 +75,16 @@ public class FlashcardService {
         List<UserFlashcardProgress> dueCards = progressRepository
                 .findDueFlashcardsByUserId(currentUser.getId());
 
-        // Cards never reviewed by this user appear with null progress;
-        // include all flashcards in the system that haven't been started yet.
-        List<FlashcardStudyResponse> sessionCards = dueCards.stream()
-                .map(p -> toStudyResponse(p.getFlashcard(), p))
-                .collect(Collectors.toList());
+        List<FlashcardStudyResponse> sessionCards = new ArrayList<>(
+                dueCards.stream()
+                        .map(p -> toStudyResponse(p.getFlashcard(), p))
+                        .collect(Collectors.toList())
+        );
+
+        // Include unreviewed flashcards (never studied by this user), up to 20 new cards
+        flashcardRepository.findUnreviewedByUserId(currentUser.getId(), 20).stream()
+                .map(f -> toStudyResponse(f, null))
+                .forEach(sessionCards::add);
 
         StudySessionResponse session = new StudySessionResponse();
         session.setTotal(sessionCards.size());
@@ -195,6 +201,15 @@ public class FlashcardService {
         r.setHint(f.getHint());
         r.setDifficulty(f.getDifficulty());
         r.setCreatedAt(f.getCreatedAt());
+
+        // Populate concept info by traversing HAS_FLASHCARD relationship backwards
+        conceptRepository.findByFlashcardId(f.getId()).ifPresent(concept -> {
+            r.setConceptId(concept.getId());
+            r.setConceptTitle(concept.getTitle());
+            if (concept.getTags() != null && !concept.getTags().isEmpty()) {
+                r.setConceptTag(concept.getTags().get(0).getName());
+            }
+        });
 
         // SRS data
         if (p != null) {

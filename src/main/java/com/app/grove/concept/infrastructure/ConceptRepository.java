@@ -2,6 +2,7 @@ package com.app.grove.concept.infrastructure;
 
 import com.app.grove.concept.domain.Concept;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
@@ -11,31 +12,60 @@ import org.springframework.data.repository.query.Param;
 public interface ConceptRepository extends Neo4jRepository<Concept, String> {
     Concept findByTitle(String title);
 
+    // ─── Workspace-scoped listing ─────────────────────────────────────────────
+
+    /**
+     * Returns all concepts accessible to the given user:
+     * concepts in public workspaces OR private workspaces the user is a member of.
+     * This enforces workspace-level privacy.
+     */
+    @Query(
+        value = """
+            MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace)
+            WHERE w.isPublic = true
+               OR (:user {id: $userId})-[:MEMBER_OF]->(w)
+            RETURN c
+            """,
+        countQuery = """
+            MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace)
+            WHERE w.isPublic = true
+               OR (:user {id: $userId})-[:MEMBER_OF]->(w)
+            RETURN count(c)
+            """
+    )
+    Page<Concept> findAllAccessibleByUser(@Param("userId") String userId, Pageable pageable);
+
     // ─── Search ──────────────────────────────────────────────────────────────
 
     /**
-     * Global search across title, content and tag names.
+     * Global search scoped to accessible workspaces (public or user is a member).
      * Powers the search bar in the Knowledge Graph view.
      */
     @Query(
         value = """
-            MATCH (c:Concept)
+            MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace)
+            WHERE w.isPublic = true
+               OR (:user {id: $userId})-[:MEMBER_OF]->(w)
             OPTIONAL MATCH (c)-[:TAGGED_AS]->(t:Tag)
+            WITH c, collect(t.name) AS tagNames
             WHERE toLower(c.title)   CONTAINS toLower($keyword)
                OR toLower(c.content) CONTAINS toLower($keyword)
-               OR toLower(t.name)    CONTAINS toLower($keyword)
+               OR ANY(tn IN tagNames WHERE toLower(tn) CONTAINS toLower($keyword))
             RETURN DISTINCT c
             """,
         countQuery = """
-            MATCH (c:Concept)
+            MATCH (c:Concept)-[:BELONGS_TO]->(w:Workspace)
+            WHERE w.isPublic = true
+               OR (:user {id: $userId})-[:MEMBER_OF]->(w)
             OPTIONAL MATCH (c)-[:TAGGED_AS]->(t:Tag)
+            WITH c, collect(t.name) AS tagNames
             WHERE toLower(c.title)   CONTAINS toLower($keyword)
                OR toLower(c.content) CONTAINS toLower($keyword)
-               OR toLower(t.name)    CONTAINS toLower($keyword)
+               OR ANY(tn IN tagNames WHERE toLower(tn) CONTAINS toLower($keyword))
             RETURN count(DISTINCT c)
             """
     )
-    Page<Concept> searchGlobal(@Param("keyword") String keyword, Pageable pageable);
+    Page<Concept> searchGlobal(@Param("userId") String userId, @Param("keyword") String keyword, Pageable pageable);
 
     /** Legacy title-only search (kept for backwards compat) */
     @Query(
@@ -147,6 +177,14 @@ public interface ConceptRepository extends Neo4jRepository<Concept, String> {
         RETURN count(DISTINCT neighbor)
         """)
     int countConnections(@Param("conceptId") String conceptId);
+
+    // ─── Flashcard → Concept lookup ──────────────────────────────────────────
+
+    @Query("""
+        MATCH (c:Concept)-[:HAS_FLASHCARD]->(f:Flashcard {id: $flashcardId})
+        RETURN c
+        """)
+    Optional<Concept> findByFlashcardId(@Param("flashcardId") String flashcardId);
 
     // ─── Learning paths ───────────────────────────────────────────────────────
 

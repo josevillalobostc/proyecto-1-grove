@@ -24,4 +24,16 @@ public interface FlashcardRepository extends Neo4jRepository<Flashcard, String> 
         RETURN f
         """)
     List<Flashcard> findByConceptId(@Param("conceptId") String conceptId);
+
+    /**
+     * Returns flashcards that have never been reviewed by the given user (no progress entry exists).
+     * Used in the global study session to include new cards.
+     */
+    @Query("""
+        MATCH (f:Flashcard)
+        WHERE NOT (:user {id: $userId})-[:REVIEWS]->(:UserFlashcardProgress)-[:FOR_FLASHCARD]->(f)
+        RETURN f
+        LIMIT $limit
+        """)
+    List<Flashcard> findUnreviewedByUserId(@Param("userId") String userId, @Param("limit") int limit);
 }

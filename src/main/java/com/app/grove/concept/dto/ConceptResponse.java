@@ -1,5 +1,6 @@
 package com.app.grove.concept.dto;
 
+import com.app.grove.tag.dto.TagResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
@@ -16,5 +17,8 @@ public class ConceptResponse {
     private String workspaceId;
     private String forkedFromId;
     private List<String> prerequisiteIds;
+    private List<String> prerequisiteTitles;
     private List<String> tagIds;
+    private List<TagResponse> tags;
+    private int connectionCount;
 }

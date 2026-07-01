@@ -164,6 +164,12 @@ public class WorkspaceService {
         return workspaceRepository.findByIsPublicTrue(pageable).map(this::mapToResponse);
     }
 
+    public Page<WorkspaceResponse> getMyWorkspaces(Pageable pageable) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) auth.getPrincipal();
+        return workspaceRepository.findByMemberId(currentUser.getId(), pageable).map(this::mapToResponse);
+    }
+
     private WorkspaceResponse mapToResponse(Workspace workspace) {
         WorkspaceResponse response = modelMapper.map(workspace, WorkspaceResponse.class);
 
